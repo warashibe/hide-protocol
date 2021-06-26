@@ -1,0 +1,20 @@
+{
+  "name": "hide-protocol",
+  "version": "0.1.0",
+  "description": "DAO protocol for sustainable NFT rewards",
+  "repository": "https://github.com/warashibe/hide-protocol",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.0",
+    "@nomiclabs/hardhat-waffle": "^2.0.0",
+    "big.js": "^6.1.1",
+    "chai": "^4.2.0",
+    "ethereum-waffle": "^3.0.0",
+    "ethers": "^5.0.0",
+    "hardhat": "^2.3.3",
+    "@openzeppelin/contracts": "^4.1.0"
+  },
+  "scripts": {
+    "test": "hardhat test"
+  }
+}
