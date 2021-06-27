@@ -162,7 +162,7 @@ describe("Integration", () => {
     await col.addAgent(a(market))
 
     // Pool
-    pool = await deploy("Pool", a(jpyc), a(market))
+    pool = await deploy("Pool", a(jpyc), a(cfg))
 
     await gov.addPool(a(pool), "JPYC")
     p = await cfg.getPool("JPYC")
@@ -175,6 +175,14 @@ describe("Integration", () => {
     // Create Items
     await market.connect(p3).createItem("item", [1])
     await market.connect(p3).createItem("item2", [2])
+  })
+
+  it("should collect fees", async () => {
+    expect(await wp.balanceOf(a(collector))).to.equal(to18(5))
+    expect(await wp.balanceOf(a(p2))).to.equal(to18(100))
+    await agt.connect(p2).test()
+    expect(await wp.balanceOf(a(collector))).to.equal(to18(6))
+    expect(await wp.balanceOf(a(p2))).to.equal(to18(99))
   })
 
   it("should go through the whole flow", async () => {
@@ -209,7 +217,7 @@ describe("Integration", () => {
 
     const share = (await cfg.share_sqrt(a(pToken2), a(p1))).toString() * 1
     const convertible = (
-      await dex.getConvertibleAmount(a(pToken2), share, a(p1))
+      await cfg.getConvertibleAmount(a(pToken2), share, a(p1))
     ).toString()
     const balance = (await pToken2.balanceOf(a(p1))).toString()
     await dex.connect(p1).convert(a(pToken2), share)

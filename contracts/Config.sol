@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/ITopic.sol";
-import "./interfaces/IPool.sol";
 import "./Storage.sol";
+import "./interfaces/IPool.sol";
 
 struct Poll {
   uint id;
