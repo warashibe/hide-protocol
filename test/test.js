@@ -127,7 +127,7 @@ describe("Integration", () => {
     await col.addAgent(a(gov))
 
     // Factory
-    fct = await deploy("Factory", a(gov), a(cfg))
+    fct = await deploy("Factory", a(cfg))
     await cfg.setFactory(a(fct))
     await col.addAgent(a(fct))
 

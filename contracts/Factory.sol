@@ -8,15 +8,8 @@ import "./EIP712MetaTransaction.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Factory is Ownable, UseConfig, EIP712MetaTransaction {
-  address private gov;
-  modifier onlyGovernance {
-    require(msgSender() == gov, "only governance can execute");
-    _;
-  }
   
-  constructor(address _gov, address _config) UseConfig(_config) EIP712MetaTransaction("Factory", "1") {
-    gov = _gov;
-  }
+  constructor(address _config) UseConfig(_config) EIP712MetaTransaction("Factory", "1") {}
 
   function _issue (string memory _name, string memory _sym, address _config) internal returns (address _token){
     Topic _topic = new Topic(_name, _sym, c().freigeld_numerator(), c().freigeld_denominator(), _config);
@@ -24,7 +17,8 @@ contract Factory is Ownable, UseConfig, EIP712MetaTransaction {
     return address(_topic);
   }
   
-  function issue (string memory _name, string memory _sym, address _config) external onlyGovernance returns (address _token){
+  function issue (string memory _name, string memory _sym, address _config) external returns (address _token){
+    c().onlyGovernance(msgSender());
     return _issue(_name, _sym, _config);
   }
 
