@@ -38,6 +38,7 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
     require(IPool(_pool).owner() == msgSender(), "only pool owner can execute");
     require(bytes(c().pool_names(_pool)).length == 0, "pool is already registered");
     require(c().pool_addresses(_name) == address(0), "pool name is taken");
+    ICollector(c().collector()).collect(msgSender());
     c().setPoolNames(_pool,_name);
     c().setPoolAddresses(_name, _pool);
     uint free_topic = c().free_topic();
@@ -104,14 +105,6 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
     }
   }
   
-  function getMintable (uint _poll, uint _amount, uint _topic) public view returns (uint mintable, uint converted){
-    Poll memory _Poll = c().getPoll(_poll);
-    converted = (_Poll.amount - _Poll.minted) * _amount / IPool(_Poll.pool).getTotalVP();
-    uint sqrt_amount = c().sqrt(converted);
-    uint sqrt_share = c().sqrt(c().total_share(c().pairs(_Poll.pool,_topic)));
-    mintable = converted * sqrt_amount / (sqrt_amount + sqrt_share);
-  }
-  
   function vote (uint _poll, uint _amount, uint _topic) public {
     c().existsPoll(_poll);
     c().existsTopic(_topic);
@@ -121,7 +114,7 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
     require(c().isVotable(_Poll.topics, _topic), "topic not votable");
     ICollector(c().collector()).collect(msgSender());
     _setPair(_Poll.pool, _topic);
-    (uint mintable,  uint converted) = getMintable(_poll, _amount, _topic);
+    (uint mintable,  uint converted) = c().getMintable(_poll, _amount, _topic);
     c().setPollsMinted(_poll, _Poll.minted + converted);
     _claim(_poll, _topic, converted, mintable, _amount);
   }

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/ITopic.sol";
+import "./interfaces/IPool.sol";
 import "./Storage.sol";
 
 struct Poll {
@@ -54,7 +55,7 @@ contract Config is Ownable {
   
   /* constructor */
   
-  constructor(address _addr) public {
+  constructor(address _addr) {
     _storage = _addr;
   }
 
@@ -304,6 +305,25 @@ contract Config is Ownable {
   
   /* state aggrigators */
 
+  function getConvertibleAmount(address _pair, uint _amount, address _holder) public view returns(uint mintable){
+    uint share_sqrt = share_sqrt(_pair, _holder);
+    if(_amount > share_sqrt){
+      mintable = 0;
+    }else{
+      uint total_sqrt = total_share_sqrt(_pair);
+      uint claimable_amount = getConvertible(_pair);
+      mintable = claimable_amount * _amount / total_sqrt;
+    }
+  }
+  
+  function getMintable (uint _poll, uint _amount, uint _topic) public view returns (uint mintable, uint converted){
+    Poll memory _Poll = getPoll(_poll);
+    converted = (_Poll.amount - _Poll.minted) * _amount / IPool(_Poll.pool).getTotalVP();
+    uint sqrt_amount = sqrt(converted);
+    uint sqrt_share = sqrt(total_share(pairs(_Poll.pool,_topic)));
+    mintable = converted * sqrt_amount / (sqrt_amount + sqrt_share);
+  }
+  
   function getPoll(uint _poll) public view returns (Poll memory) {
     return polls(_poll);
   }
@@ -470,15 +490,15 @@ contract Config is Ownable {
   }
 
   /* exists */
-  function existsPool (address _pool) external {
+  function existsPool (address _pool) external view {
     require(bytes(pool_names(_pool)).length != 0, "pool does not exist");
   }
   
-  function existsPoll (uint _poll) external {
+  function existsPoll (uint _poll) external view {
     require(getPoll(_poll).block_until != 0, "poll does not exist");
   }
   
-  function existsTopic (uint _topic) external {
+  function existsTopic (uint _topic) external view {
     require(bytes(topic_names(_topic)).length != 0, "topic does not exist");
   }
   

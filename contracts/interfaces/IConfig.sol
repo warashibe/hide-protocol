@@ -140,6 +140,9 @@ struct Poll {
   function onlyMarket(address _sender) external view;
   function onlyDEX(address _sender) external view;
   function onlyDEXOrMarket(address _sender) external view;
-  function onlyFactoryOrGovernance(address _sender) external view; 
+  function onlyFactoryOrGovernance(address _sender) external view;
+  
+  function getMintable (uint _poll, uint _amount, uint _topic) external view returns (uint, uint);
+  function getConvertibleAmount(address _pair, uint _amount, address _holder) external view returns(uint);
   
 }

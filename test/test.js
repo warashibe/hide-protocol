@@ -107,6 +107,20 @@ describe("Integration", () => {
     agt = await deploy("Agent", a(col))
     await col.addAgent(a(agt))
 
+    // Transfer
+    await wp.transfer(a(p1), to18(100))
+    await wp.transfer(a(p2), to18(100))
+    await wp.transfer(a(p3), to18(100))
+
+    await jpyc.transfer(a(p1), to18(100))
+    await jpyc.transfer(a(p2), to18(100))
+    await jpyc.transfer(a(p3), to18(100))
+
+    await wp.approve(a(col), UINT_MAX)
+    await wp.connect(p1).approve(a(col), UINT_MAX)
+    await wp.connect(p2).approve(a(col), UINT_MAX)
+    await wp.connect(p3).approve(a(col), UINT_MAX)
+
     // Governance
     gov = await deploy("Governance", a(cfg))
     await cfg.setGovernance(a(gov))
@@ -149,24 +163,10 @@ describe("Integration", () => {
 
     // Pool
     pool = await deploy("Pool", a(jpyc), a(market))
+
     await gov.addPool(a(pool), "JPYC")
     p = await cfg.getPool("JPYC")
-
-    // Transfer
     await jpyc.transfer(a(pool), to18(10000))
-
-    await wp.transfer(a(p1), to18(100))
-    await wp.transfer(a(p2), to18(100))
-    await wp.transfer(a(p3), to18(100))
-
-    await jpyc.transfer(a(p1), to18(100))
-    await jpyc.transfer(a(p2), to18(100))
-    await jpyc.transfer(a(p3), to18(100))
-
-    await wp.approve(a(col), UINT_MAX)
-    await wp.connect(p1).approve(a(col), UINT_MAX)
-    await wp.connect(p2).approve(a(col), UINT_MAX)
-    await wp.connect(p3).approve(a(col), UINT_MAX)
 
     // Create Topics
     await fct.createTopic("TOPIC1", "topic1")
@@ -177,7 +177,7 @@ describe("Integration", () => {
     await market.connect(p3).createItem("item2", [2])
   })
 
-  it("Whote flow", async () => {
+  it("should go through the whole flow", async () => {
     // check setup
     expect(await pool.getVP(a(p1))).to.equal(to18(100))
     expect(await pool.getVP(a(p2))).to.equal(to18(100))
@@ -203,7 +203,7 @@ describe("Integration", () => {
     expect(await jpyc.balanceOf(p)).to.equal(to18(9995))
 
     // vote for topic with shareholders
-    const mintable = await gov.getMintable(0, to18(30), 2)
+    const mintable = await cfg.getMintable(0, to18(30), 2)
     await gov.connect(p3).vote(0, to18(30), 2)
     expect(await pToken2.balanceOf(a(p3))).to.equal(mintable.mintable)
 

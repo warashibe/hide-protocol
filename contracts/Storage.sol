@@ -1,3 +1,4 @@
+//SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -19,7 +20,7 @@ contract Storage is AccessControlEnumerable, Ownable {
     mapping(bytes32 => bool[]) boolArrayStorage;
     mapping(bytes32 => int[]) intArrayStorage;
 
-    constructor() public{
+    constructor() {
       _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
       _setupRole(EDITOR_ROLE, _msgSender());
     }
