@@ -131,6 +131,17 @@ describe("Integration", () => {
     await cfg.setFactory(a(fct))
     await col.addAgent(a(fct))
 
+    // Topics
+    topics = await deploy(
+      "NFT",
+      "Hide Topics",
+      "HIDETOPICS",
+      "https://hide.ac/api/topics/"
+    )
+    await cfg.setTopics(a(topics))
+    await topics.addMinter(a(fct))
+    await fct.createFreeTopic("FREE", "free")
+
     // DEX
     dex = await deploy("DEX", a(cfg))
     await cfg.setDEX(a(dex))
@@ -143,17 +154,6 @@ describe("Integration", () => {
       "HIDENFT",
       "https://hide.ac/api/items/"
     )
-
-    // Topics
-    topics = await deploy(
-      "NFT",
-      "Hide Topics",
-      "HIDETOPICS",
-      "https://hide.ac/api/topics/"
-    )
-    await cfg.setTopics(a(topics))
-    await topics.addMinter(a(fct))
-    await fct.createFreeTopic("FREE", "free")
 
     // Market
     market = await deploy("Market", a(nft), a(cfg))

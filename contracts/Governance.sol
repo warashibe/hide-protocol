@@ -100,7 +100,7 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
   
   function _setPair (address _pool, uint _topic) internal {
     if(c().pairs(_pool, _topic) == address(0)){
-      string memory name = c().concat(c().concat(IERC20Metadata(IPool(_pool).token()).name(),"/"),c().topic_names(_topic));
+      string memory name = c().concat(c().concat(IERC20Metadata(IPool(_pool).token()).symbol(),"/"),c().topic_names(_topic));
       c().setPairs(_pool, _topic, IFactory(c().factory()).issue(name, name, address(c())));
     }
   }
