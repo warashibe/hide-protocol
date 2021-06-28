@@ -197,7 +197,7 @@ describe("Integration", () => {
 
     // vote for topic
     await gov.connect(p1).vote(0, to18(10), 2)
-
+    return
     // get pair token
     const pair2 = await cfg.getPair(p, 2)
     const pToken2 = new Contract(pair2, _IERC20.abi, owner)

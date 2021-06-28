@@ -306,8 +306,8 @@ contract Config is Ownable {
   /* state aggrigators */
 
   function getConvertibleAmount(address _pair, uint _amount, address _holder) public view returns(uint mintable){
-    uint share_sqrt = share_sqrt(_pair, _holder);
-    if(_amount > share_sqrt){
+    uint _share_sqrt = share_sqrt(_pair, _holder);
+    if(_amount > _share_sqrt){
       mintable = 0;
     }else{
       uint total_sqrt = total_share_sqrt(_pair);
@@ -320,7 +320,7 @@ contract Config is Ownable {
     Poll memory _Poll = getPoll(_poll);
     converted = (_Poll.amount - _Poll.minted) * _amount / IPool(_Poll.pool).getTotalVP();
     uint sqrt_amount = sqrt(converted);
-    uint sqrt_share = sqrt(total_share(pairs(_Poll.pool,_topic)));
+    uint sqrt_share = sqrt(total_share(getPair(_Poll.pool,_topic)));
     mintable = converted * sqrt_amount / (sqrt_amount + sqrt_share);
   }
   
@@ -342,8 +342,7 @@ contract Config is Ownable {
   
   
   function getPair(address _pool, uint _topic) public view returns (address _token) {
-    _token = pairs(_pool, _topic);
-    require(_token != address(0), "pair does not exist");
+    _token = pairs(IPool(_pool).token(), _topic);
   }
   
   function getClaimable (uint _poll, address _voter) public view returns (uint _amount){
@@ -389,7 +388,7 @@ contract Config is Ownable {
   
   function setPairs(address _addr1, uint _uint, address _addr2) external {
     onlyFactoryOrGovernance(msg.sender);
-    _setAddress(abi.encode("pairs",_addr1, _uint), _addr2);
+    _setAddress(abi.encode("pairs", _addr1, _uint), _addr2);
   }
   
   function setTotalShare(address _addr, uint _uint) external {

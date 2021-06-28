@@ -26,10 +26,10 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
     c().setPollsMinted(_poll, _Poll.minted + _amount);
     c().setMinted(_poll, msgSender(), c().getMinted(_poll, msgSender()) + _amount);
     uint sqrt_amount = c().sqrt(_amount);
-    uint sqrt_share = c().sqrt(c().total_share(c().pairs(_Poll.pool,_topic)));
+    uint sqrt_share = c().sqrt(c().total_share(c().getPair(_Poll.pool,_topic)));
     uint mintable = _amount * sqrt_amount / (sqrt_amount + sqrt_share);
     address _pool = c().getPoll(_poll).pool;
-    address _pair = c().pairs(_pool, _topic);
+    address _pair = c().getPair(_pool, _topic);
     ITopic(_pair).mint(msgSender(), mintable);
     c().setClaimable(_pair, c().claimable(_pair) + (_amount - mintable));
   }
@@ -43,7 +43,7 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
     c().setPoolAddresses(_name, _pool);
     uint free_topic = c().free_topic();
     string memory topic_name = c().topic_names(free_topic);
-    c().setPairs(_pool, free_topic, IFactory(c().factory()).issue(topic_name, topic_name, address(c())));
+    c().setPairs(IPool(_pool).token(), free_topic, IFactory(c().factory()).issue(topic_name, topic_name, address(c())));
   }
   
   function updatePollTopics(uint _poll, uint[] memory _topics) public {
@@ -80,7 +80,7 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
     require(IPool(p.pool).owner() == msgSender(), "only pool owner can execute");
     require(p.phase == 2, "claim period not open");
     address _pool = p.pool;
-    address _pair = c().pairs(_pool, c().free_topic());
+    address _pair = c().getPair(_pool, c().free_topic());
     c().setClaimable(_pair, c().claimable(_pair) + (p.amount - p.minted));
     c().setPollsMinted(_poll, 0);
     c().setPollsPhase(_poll, 3);
@@ -93,15 +93,15 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
     c().setPollsTotalVotes(_poll, _Poll.total_votes + _amount);
     IPool(_Poll.pool).vote(msgSender(), _amount);
     address _pool = _Poll.pool;
-    address _pair = c().pairs(_pool, _topic);
+    address _pair = c().getPair(_pool, _topic);
     ITopic(_pair).mint(msgSender(), mintable);
     c().setClaimable(_pair, c().claimable(_pair) + (_converted_amount - mintable));
   }
   
   function _setPair (address _pool, uint _topic) internal {
-    if(c().pairs(_pool, _topic) == address(0)){
-      string memory name = c().concat(c().concat(IERC20Metadata(IPool(_pool).token()).symbol(),"/"),c().topic_names(_topic));
-      c().setPairs(_pool, _topic, IFactory(c().factory()).issue(name, name, address(c())));
+    if(c().getPair(_pool, _topic) == address(0)){
+      string memory name = c().concat(c().concat(IERC20Metadata(IPool(_pool).token()).name(),"/"),c().topic_names(_topic));
+      c().setPairs(IPool(_pool).token(), _topic, IFactory(c().factory()).issue(name, name, address(c())));
     }
   }
   
