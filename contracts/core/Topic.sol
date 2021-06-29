@@ -2,22 +2,22 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./ERC20Permit.sol";
+import "../lib/ERC20Permit.sol";
 import "./UseConfig.sol";
 
 contract Topic is Ownable, ERC20Permit, UseConfig {
   
-  constructor(string memory _name, string memory _sym, uint _numerator, uint _denominator, address _config) ERC20Freigeld(_name, _sym) ERC20Permit(_name) UseConfig(_config) {
+  constructor(string memory _name, string memory _sym, uint _numerator, uint _denominator, address _addr) ERC20Freigeld(_name, _sym) ERC20Permit(_name) UseConfig(_addr) {
     _setRate(_numerator, _denominator);
   }
   
   function setRate (uint256 _numerator, uint256 _denominator) external {
-    c().onlyGovernance(msg.sender);
+    v().onlyGovernance(msg.sender);
     _setRate(_numerator, _denominator);
   }
   
   function mint (address _to, uint _amount) external {
-    c().onlyGovernanceOrDEX(msg.sender);
+    v().onlyGovernanceOrDEX(msg.sender);
     _mint(_to, _amount);
   }
   

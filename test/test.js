@@ -15,7 +15,7 @@ const {
 } = require("./utils")
 
 describe("Unit", () => {
-  let str, cfg
+  let str, cfg, utils, viewer, addr
   let ac, p1, p2, p3
   beforeEach(async () => {
     ac = await ethers.getSigners()
@@ -44,18 +44,25 @@ describe("Unit", () => {
   describe("Config", () => {
     beforeEach(async () => {
       str = await deploy("Storage")
-      cfg = await deploy("Config", a(str))
+      addr = await deploy("Addresses", a(str))
+      await str.addEditor(a(addr))
+      utils = await deploy("Utils")
+      addr.setUtils(a(utils))
+      viewer = await deploy("Viewer", a(addr))
+      addr.setViewer(a(viewer))
+      cfg = await deploy("Config", a(addr))
       await str.addEditor(a(cfg))
+      addr.setConfig(a(cfg))
     })
     it("should persist with Storage", async () => {
-      await cfg.setDEX(a(p1))
-      expect(await cfg.dex()).to.equal(a(p1))
+      await addr.setDEX(a(p1))
+      expect(await addr.dex()).to.equal(a(p1))
     })
-    it("shoul allow only Protocol contracts", async () => {
+    it("should allow only Protocol contracts", async () => {
       await isErr(cfg.setMinted(1, a(p1), 1))
-      await cfg.setGovernance(a(p1))
+      await addr.setGovernance(a(p1))
       await cfg.setMinted(1, a(p1), 1)
-      expect(await cfg.minted(1, a(p1))).to.equal(1)
+      expect(await viewer.minted(1, a(p1))).to.equal(1)
     })
   })
 })
@@ -75,8 +82,12 @@ describe("Integration", () => {
     fct,
     dex,
     topics,
-    str
+    str,
+    utils,
+    viewer,
+    addr
   let ac, owner, collector, p1, p2, p3
+
   beforeEach(async () => {
     ac = await ethers.getSigners()
     ;[owner, collector, p1, p2, p3] = ac
@@ -90,8 +101,21 @@ describe("Integration", () => {
     // Storage
     str = await deploy("Storage")
 
+    // Addresses
+    addr = await deploy("Addresses", a(str))
+    await str.addEditor(a(addr))
+
+    // Utils
+    utils = await deploy("Utils")
+    await addr.setUtils(a(utils))
+
+    // Viewer
+    viewer = await deploy("Viewer", a(addr))
+    await addr.setViewer(a(viewer))
+
     // Config
-    cfg = await deploy("Config", a(str))
+    cfg = await deploy("Config", a(addr))
+    await addr.setConfig(a(cfg))
     await str.addEditor(a(cfg))
     await cfg.setCreatorPercentage(8000)
     await cfg.setFreigeldRate(63419584, 1000000000000000)
@@ -103,7 +127,7 @@ describe("Integration", () => {
       [to18(1), to18(1)],
       a(collector)
     )
-    await cfg.setCollector(a(col))
+    await addr.setCollector(a(col))
     agt = await deploy("Agent", a(col))
     await col.addAgent(a(agt))
 
@@ -122,13 +146,13 @@ describe("Integration", () => {
     await wp.connect(p3).approve(a(col), UINT_MAX)
 
     // Governance
-    gov = await deploy("Governance", a(cfg))
-    await cfg.setGovernance(a(gov))
+    gov = await deploy("Governance", a(addr))
+    await addr.setGovernance(a(gov))
     await col.addAgent(a(gov))
 
     // Factory
-    fct = await deploy("Factory", a(cfg))
-    await cfg.setFactory(a(fct))
+    fct = await deploy("Factory", a(addr))
+    await addr.setFactory(a(fct))
     await col.addAgent(a(fct))
 
     // Topics
@@ -138,13 +162,13 @@ describe("Integration", () => {
       "HIDETOPICS",
       "https://hide.ac/api/topics/"
     )
-    await cfg.setTopics(a(topics))
+    await addr.setTopics(a(topics))
     await topics.addMinter(a(fct))
     await fct.createFreeTopic("FREE", "free")
 
     // DEX
-    dex = await deploy("DEX", a(cfg))
-    await cfg.setDEX(a(dex))
+    dex = await deploy("DEX", a(addr))
+    await addr.setDEX(a(dex))
     await col.addAgent(a(dex))
 
     // NFT
@@ -156,16 +180,16 @@ describe("Integration", () => {
     )
 
     // Market
-    market = await deploy("Market", a(nft), a(cfg))
+    market = await deploy("Market", a(nft), a(addr))
     await nft.addMinter(a(market))
-    await cfg.setMarket(a(market))
+    await addr.setMarket(a(market))
     await col.addAgent(a(market))
 
     // Pool
-    pool = await deploy("Pool", a(jpyc), a(cfg))
+    pool = await deploy("Pool", a(jpyc), a(addr))
 
     await gov.addPool(a(pool), "JPYC")
-    p = await cfg.getPool("JPYC")
+    p = await viewer.getPool("JPYC")
     await jpyc.transfer(a(pool), to18(10000))
 
     // Create Topics
@@ -176,6 +200,8 @@ describe("Integration", () => {
     await market.connect(p3).createItem("item", [1])
     await market.connect(p3).createItem("item2", [2])
   })
+
+  it("should deploy contracts", async () => {})
 
   it("should collect fees", async () => {
     expect(await wp.balanceOf(a(collector))).to.equal(to18(5))
@@ -197,9 +223,9 @@ describe("Integration", () => {
 
     // vote for topic
     await gov.connect(p1).vote(0, to18(10), 2)
-    return
+
     // get pair token
-    const pair2 = await cfg.getPair(p, 2)
+    const pair2 = await viewer.getPair(p, 2)
     const pToken2 = new Contract(pair2, _IERC20.abi, owner)
     expect(await pToken2.balanceOf(a(p1))).to.equal(to18(10))
 
@@ -211,13 +237,13 @@ describe("Integration", () => {
     expect(await jpyc.balanceOf(p)).to.equal(to18(9995))
 
     // vote for topic with shareholders
-    const mintable = await cfg.getMintable(0, to18(30), 2)
+    const mintable = await viewer.getMintable(0, to18(30), 2)
     await gov.connect(p3).vote(0, to18(30), 2)
     expect(await pToken2.balanceOf(a(p3))).to.equal(mintable.mintable)
 
-    const share = (await cfg.share_sqrt(a(pToken2), a(p1))).toString() * 1
+    const share = (await viewer.share_sqrt(a(pToken2), a(p1))).toString() * 1
     const convertible = (
-      await cfg.getConvertibleAmount(a(pToken2), share, a(p1))
+      await viewer.getConvertibleAmount(a(pToken2), share, a(p1))
     ).toString()
     const balance = (await pToken2.balanceOf(a(p1))).toString()
     await dex.connect(p1).convert(a(pToken2), share)
@@ -231,19 +257,19 @@ describe("Integration", () => {
     // close poll => claim period
     await gov.closePoll(0)
     await isErr(gov.connect(p3).vote(0, to18(30), 2))
-    expect(await cfg.getClaimable(0, a(p1))).to.equal(to18(240))
-    expect(await cfg.getClaimable(0, a(p3))).to.equal(to18(720))
+    expect(await viewer.getClaimable(0, a(p1))).to.equal(to18(240))
+    expect(await viewer.getClaimable(0, a(p3))).to.equal(to18(720))
     await gov.connect(p1).mint(0, to18(240), 3)
-    const pair3 = await cfg.getPair(p, 3)
+    const pair3 = await viewer.getPair(p, 3)
     const pToken3 = new Contract(pair3, _IERC20.abi, owner)
-    expect(await cfg.getClaimable(0, a(p1))).to.equal(to18(0))
+    expect(await viewer.getClaimable(0, a(p1))).to.equal(to18(0))
     expect(await pToken3.balanceOf(a(p1))).to.equal(to18(240))
 
     // close claim => free topic gets the rest
     await gov.closeClaim(0)
     await isErr(gov.connect(p1).mint(0, to18(240), 3))
-    const pair1 = await cfg.getPair(p, 1)
+    const pair1 = await viewer.getPair(p, 1)
     const pToken1 = new Contract(pair1, _IERC20.abi, owner)
-    expect(await cfg.claimable(a(pToken1))).to.equal(to18(720))
+    expect(await viewer.claimable(a(pToken1))).to.equal(to18(720))
   })
 })

@@ -1,3 +1,5 @@
+//SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 contract EIP712Base {
@@ -13,7 +15,7 @@ contract EIP712Base {
 
     bytes32 internal domainSeperator;
 
-    constructor(string memory name, string memory version) public {
+    constructor(string memory name, string memory version) {
         domainSeperator = keccak256(abi.encode(
 			EIP712_DOMAIN_TYPEHASH,
 			keccak256(bytes(name)),

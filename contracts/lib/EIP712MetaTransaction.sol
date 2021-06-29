@@ -1,3 +1,5 @@
+//SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
@@ -22,7 +24,7 @@ contract EIP712MetaTransaction is EIP712Base {
     bytes functionSignature;
   }
 
-  constructor(string memory name, string memory version) public EIP712Base(name, version) {}
+  constructor(string memory name, string memory version) EIP712Base(name, version) {}
 
   function executeMetaTransaction(address userAddress, bytes memory functionSignature, bytes32 sigR, bytes32 sigS, uint8 sigV) public payable returns(bytes memory) {
     MetaTransaction memory metaTx = MetaTransaction({
@@ -40,7 +42,7 @@ contract EIP712MetaTransaction is EIP712Base {
     return returnData;
   }
 
-  function hashMetaTransaction(MetaTransaction memory metaTx) internal view returns (bytes32) {
+  function hashMetaTransaction(MetaTransaction memory metaTx) internal pure returns (bytes32) {
     return keccak256(abi.encode(
 				META_TRANSACTION_TYPEHASH,
 				metaTx.nonce,
