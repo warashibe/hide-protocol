@@ -166,16 +166,11 @@ describe("Integration", () => {
     await topics.addMinter(a(fct))
     await fct.createFreeTopic("FREE", "free")
 
-    // DEX
-    dex = await deploy("DEX", a(addr))
-    await addr.setDEX(a(dex))
-    await col.addAgent(a(dex))
-
     // NFT
     nft = await deploy(
       "NFT",
-      "Hide NFT",
-      "HIDENFT",
+      "Hide Articles",
+      "HIDEARTICLES",
       "https://hide.ac/api/items/"
     )
 
@@ -184,6 +179,11 @@ describe("Integration", () => {
     await nft.addMinter(a(market))
     await addr.setMarket(a(market))
     await col.addAgent(a(market))
+
+    // DEX
+    dex = await deploy("DEX", a(addr))
+    await addr.setDEX(a(dex))
+    await col.addAgent(a(dex))
 
     // Pool
     pool = await deploy("Pool", a(jpyc), a(addr))

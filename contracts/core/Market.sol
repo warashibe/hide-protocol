@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../lib/NFT.sol";
-import "../dev/Pool.sol";
+import "../interfaces/IPool.sol";
 import "../interfaces/ICollector.sol";
 import "./UseConfig.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
@@ -19,6 +19,7 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
   function updateItem (address _nft, uint _id, uint[] memory _topics) public {
     require(msgSender() == IERC721(_nft).ownerOf(_id), "item must be registered by owner");
     require(v().items(_nft, _id) == true, "item not registered");
+    ICollector(a().collector()).collect(msgSender());
     c().setItemTopics(_nft, _id, _topics);
   }
   
@@ -30,12 +31,15 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
   }
   
   function removeItem (address _nft, uint _id) public {
+    require(msgSender() == IERC721(_nft).ownerOf(_id), "item must be registered by owner");
+    require(v().items(_nft, _id) == true, "item not registered");
+    ICollector(a().collector()).collect(msgSender());
     c().setItems(_nft, _id, false);
     c().deleteItemTopics(_nft, _id);
   }
   
   function createItem (string memory _str, uint[] memory _topics) public {
-    (address _nft, uint _id) = v().item_indexes(_str);
+    (, uint _id) = v().item_indexes(_str);
     require(_id == 0, "item already registered");
     ICollector(a().collector()).collect(msgSender());
     uint id = NFT(nft).mint(msgSender(), _str);
@@ -45,6 +49,7 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
   
   function burnFor (address _nft, uint _id, address _pool, uint _topic, uint _amount) public {
     require(v().items(_nft, _id), "item not registered");
+    require(msgSender() != IERC721(_nft).ownerOf(_id), "item owner cannot vote");
     ICollector(a().collector()).collect(msgSender());
     bool existsTopic = v().free_topic() == _topic ? true : false;
     if(!existsTopic){
@@ -60,7 +65,7 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
     address item_owner = NFT(_nft).ownerOf(_id);
     uint _reward = _amount * v().creator_percentage() / 10000;
     ERC20Burnable(pair).burnFrom(msgSender(),_amount);
-    Pool(_pool).withdraw(item_owner, msgSender(), _amount);
+    IPool(_pool).withdraw(item_owner, msgSender(), _amount);
     c().setTotalShare(pair, v().total_share(pair) + _amount);
     c().setTotalKudos(pair, v().total_kudos(pair) + _amount);
     addShare(pair, _reward, item_owner);
