@@ -34,9 +34,12 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
     c().deleteItemTopics(_nft, _id);
   }
   
-  function createItem (string memory tokenURI, uint[] memory _topics) public {
+  function createItem (string memory _str, uint[] memory _topics) public {
+    (address _nft, uint _id) = v().item_indexes(_str);
+    require(_id == 0, "item already registered");
     ICollector(a().collector()).collect(msgSender());
-    uint id = NFT(nft).mint(msgSender(), tokenURI);
+    uint id = NFT(nft).mint(msgSender(), _str);
+    c().setItemIndexes(_str, nft, id);
     addItem(nft, id, _topics);
   }
   

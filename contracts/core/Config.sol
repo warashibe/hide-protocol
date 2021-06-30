@@ -205,4 +205,10 @@ contract Config is Ownable {
     _setUint(abi.encode("minted", _uint1, _addr), _uint2);
   }
 
+  function setItemIndexes(string memory _str, address _addr, uint _uint) external {
+    IViewer(IAddresses(addr).viewer()).onlyMarket(msg.sender);
+    _setUint(abi.encode("item_indexes_id", _str), _uint);
+    _setAddress(abi.encode("item_indexes_contract", _str), _addr);
+  }
+  
 }

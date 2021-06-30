@@ -198,7 +198,7 @@ describe("Integration", () => {
 
     // Create Items
     await market.connect(p3).createItem("item", [1])
-    await market.connect(p3).createItem("item2", [2])
+    await market.connect(p3).createItem("item2", [3])
   })
 
   it("should deploy contracts", async () => {})
@@ -218,6 +218,8 @@ describe("Integration", () => {
     expect(await pool.getVP(a(p3))).to.equal(to18(100))
     expect(await pool.available()).to.equal(to18(10000))
 
+    // updateItem topics
+    await market.connect(p3).updateItem(a(nft), 2, [2])
     // set poll
     await gov.setPoll(p, to18(1000), 30, [])
 

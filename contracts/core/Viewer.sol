@@ -142,6 +142,11 @@ contract Viewer {
     return _getUint(abi.encode("topic_indexes",_str));
   }
 
+  function item_indexes(string memory _str) public view returns(address nft, uint id){
+    id =_getUint(abi.encode("item_indexes_id",_str));
+    nft = _getAddress(abi.encode("item_indexes_contract",_str));
+  }
+  
   function pairs(address _addr, uint _uint) public view returns(address){
     return _getAddress(abi.encode("pairs",_addr, _uint));
   }

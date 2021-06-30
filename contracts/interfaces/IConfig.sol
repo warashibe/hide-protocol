@@ -71,4 +71,5 @@ interface IConfig {
   
   function setMinted(uint _uint1, address _addr, uint _uint2) external;
   
+  function setItemIndexes(string memory _str, address _addr, uint _uint) external;
 }

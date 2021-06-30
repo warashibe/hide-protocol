@@ -15,5 +15,7 @@ interface IPool {
   function setPoll (uint _amount) external;
 
   function vote (address _voter, uint _amount) external;
+  
   function withdraw(address _to, address _voter, uint _amount) external;
+  
 }

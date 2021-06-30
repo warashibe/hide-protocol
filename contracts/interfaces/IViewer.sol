@@ -35,6 +35,8 @@ interface IViewer {
   
   function items(address _addr, uint _uint) external view returns(bool);
 
+  function item_indexes(string memory _str) external view returns(address, uint);
+  
   function freigeld_numerator () external view returns (uint);
   
   function freigeld_denominator () external view returns (uint);
@@ -115,12 +117,17 @@ interface IViewer {
 
   /* modifiers */
   function onlyGovernanceOrDEX(address _sender) external view;
-  function onlyGovernance(address _sender) external view;
-  function onlyFactory(address _sender) external view;
-  function onlyMarket(address _sender) external view;
-  function onlyDEX(address _sender) external view;
-  function onlyDEXOrMarket(address _sender) external view;
-  function onlyFactoryOrGovernance(address _sender) external view;
   
+  function onlyGovernance(address _sender) external view;
+  
+  function onlyFactory(address _sender) external view;
+  
+  function onlyMarket(address _sender) external view;
+  
+  function onlyDEX(address _sender) external view;
+  
+  function onlyDEXOrMarket(address _sender) external view;
+  
+  function onlyFactoryOrGovernance(address _sender) external view;
   
 }
