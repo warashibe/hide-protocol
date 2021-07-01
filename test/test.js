@@ -274,4 +274,51 @@ describe("Integration", () => {
     const pToken1 = new Contract(pair1, _IERC20.abi, owner)
     expect(await viewer.claimable(a(pToken1))).to.equal(to18(720))
   })
+
+  it("should upgrade contracts", async () => {
+    // Addresses
+    addr = await deploy("Addresses", a(str))
+    await str.addEditor(a(addr))
+    await addr.setCollector(a(col))
+
+    // Config
+    cfg = await deploy("Config", a(addr))
+    await addr.setConfig(a(cfg))
+    await str.addEditor(a(cfg))
+
+    // Utils
+    utils = await deploy("Utils")
+    await addr.setUtils(a(utils))
+
+    // Viewer
+    viewer = await deploy("Viewer", a(addr))
+    await addr.setViewer(a(viewer))
+
+    // Governance
+    gov = await deploy("Governance", a(addr))
+    await addr.setGovernance(a(gov))
+    await col.addAgent(a(gov))
+
+    // Factory
+    fct = await deploy("Factory", a(addr))
+    await addr.setFactory(a(fct))
+    await col.addAgent(a(fct))
+    await topics.addMinter(a(fct))
+
+    // NFT
+    nft = await deploy(
+      "NFT",
+      "Hide Articles",
+      "HIDEARTICLES",
+      "https://hide.ac/api/items/"
+    )
+
+    // Market
+    market = await deploy("Market", a(nft), a(addr))
+    await nft.addMinter(a(market))
+    await addr.setMarket(a(market))
+    await col.addAgent(a(market))
+
+    await fct.createTopic("TOPIC3", "topic3")
+  })
 })
