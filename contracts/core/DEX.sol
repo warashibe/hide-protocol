@@ -13,26 +13,29 @@ contract DEX is Ownable, UseConfig, EIP712MetaTransaction {
   constructor(address _addr) UseConfig(_addr) EIP712MetaTransaction("DEX", "1"){}
   
   function convert (address _pair, uint _amount) public {
-    uint share_sqrt = v().share_sqrt(_pair, msgSender());
-    require(_amount <= share_sqrt, "share not enough");
+    uint _balance = v().balanceOf(_pair, msgSender());
+    require(_amount <= _balance, "share not enough");
+    uint _supply = v().total_share_sqrt(_pair);
+    uint _last_balance = v().share_sqrt(_pair, msgSender());
+    uint _new_balance = u().sqrt(_balance - _amount);
+    uint diff = _last_balance - _new_balance;
+    uint _totalSupply = v().totalSupply(_pair) + _balance - diff - _last_balance;
+    uint _lastSupply = _supply - diff;
     ICollector(a().collector()).collect(msgSender());
-    uint mintable = v().getConvertibleAmount(_pair, _amount, msgSender());
+    uint mintable = v().getConvertibleAmount(_pair, diff, msgSender());
     ITopic(_pair).mint(msgSender(), mintable);
-    uint new_share_sqrt = share_sqrt - _amount;
-    uint new_share_square = new_share_sqrt * new_share_sqrt;
-    uint diff = share_sqrt - new_share_sqrt;
-    uint diff_square = v().share_sqrt(_pair, msgSender()) * v().share_sqrt(_pair, msgSender()) - new_share_square;
-
-    c().setTotalShareSqrt(_pair, v().total_share_sqrt(_pair) - diff);
-    c().setShareSqrt(_pair, msgSender(), share_sqrt - _amount);
-    c().setShare(_pair, msgSender(), new_share_square);
-    c().setTotalShare(_pair, v().total_share(_pair) - diff_square);
+    c().setTotalShareSqrt(_pair, _totalSupply);
+    c().setShareSqrt(_pair, msgSender(), _new_balance);
+    c().setLastBlocks(_pair, msgSender(), block.number);
+    c().setLastBlock(_pair, block.number);
+    c().setLastSupply(_pair, _lastSupply);
     if(v().claimable(_pair) >= mintable){
       c().setClaimable(_pair, v().claimable(_pair) - mintable);
     }else{
       c().setClaimed(_pair, ITopic(_pair).totalInterests() - (mintable - v().claimable(_pair)));
       c().setClaimable(_pair, 0);
     }
+    e().convert(_pair, _amount, msgSender(), mintable);
   }
   
 }

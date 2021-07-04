@@ -1,6 +1,6 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
 
+pragma solidity ^0.8.0;
 import "./UseConfig.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -13,26 +13,6 @@ import "../interfaces/IFactory.sol";
 contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
   
   constructor(address _addr) UseConfig(_addr) EIP712MetaTransaction("Governance", "1") {}
-
-  function mint (uint _poll, uint _amount, uint _topic) public {
-    v().existsPoll(_poll);
-    v().existsTopic(_topic);
-    Poll memory _Poll = v().getPoll(_poll);
-    require (_Poll.phase == 2, "mint not allowed");
-    uint _claimable = v().getClaimable(_poll, msgSender());
-    require (_claimable >= _amount, "amount too big");
-    ICollector(a().collector()).collect(msgSender());
-    _setPair(_Poll.pool, _topic);
-    c().setPollsMinted(_poll, _Poll.minted + _amount);
-    c().setMinted(_poll, msgSender(), v().getMinted(_poll, msgSender()) + _amount);
-    uint sqrt_amount = u().sqrt(_amount);
-    uint sqrt_share = u().sqrt(v().total_share(v().getPair(_Poll.pool,_topic)));
-    uint mintable = _amount * sqrt_amount / (sqrt_amount + sqrt_share);
-    address _pool = v().getPoll(_poll).pool;
-    address _pair = v().getPair(_pool, _topic);
-    ITopic(_pair).mint(msgSender(), mintable);
-    c().setClaimable(_pair, v().claimable(_pair) + (_amount - mintable));
-  }
   
   function addPool (address _pool, string memory _name) public {
     require(IPool(_pool).owner() == msgSender(), "only pool owner can execute");
@@ -43,7 +23,9 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
     c().setPoolAddresses(_name, _pool);
     uint free_topic = v().free_topic();
     string memory topic_name = v().topic_names(free_topic);
-    c().setPairs(IPool(_pool).token(), free_topic, IFactory(a().factory()).issue(topic_name, topic_name, address(a())));
+    if(v().getPair(_pool, free_topic) == address(0)){
+      c().setPairs(IPool(_pool).token(), free_topic, IFactory(a().factory()).issue(topic_name, topic_name, address(a())));
+    }
   }
   
   function updatePollTopics(uint _poll, uint[] memory _topics) public {
@@ -57,9 +39,10 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
   function setPoll (address _pool, uint _amount, uint _blocks, uint[] memory _topics) public {
     v().existsPool(_pool);
     require(IPool(_pool).owner() == msgSender(), "only pool owner can execute");
-    require(_amount <= IPool(_pool).available(), "pool amount not enough");
-    c().setPolls(_pool, _amount, block.number + _blocks, _topics);
-    IPool(_pool).setPoll(_amount);
+    IERC20Metadata(IPool(_pool).token()).transferFrom(msgSender(), a().withdraw(), _amount);
+    uint _poll = c().setPolls(_pool, _amount, block.number + _blocks, _topics);
+    c().pushPollTopics(_poll, v().free_topic());
+
   }
   
   function closePoll (uint _poll) public {
@@ -67,23 +50,24 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
     Poll memory p = v().getPoll(_poll);
     require(IPool(p.pool).owner() == msgSender(), "only pool owner can execute");
     require(p.phase == 1, "poll already closed");
-    c().setPollsMintable(_poll, p.amount - p.minted);
+    uint mintable = p.amount - p.minted;
+    c().setPollsMintable(_poll, mintable);
     if(p.block_until > block.number){
       c().setPollBlockUntil(_poll, block.number);
     }
+    uint[] memory topics = v().poll_topics(_poll);
+    uint minted = 0;
+    for(uint i = 0; i < topics.length; i++){
+      uint _minted = mintable * v().poll_topic_votes(_poll, topics[i]) / p.total_votes;
+      if(i == topics.length - 1){
+	_minted = mintable - minted;
+      }
+      address _pair = v().getPair(p.pool, topics[i]);
+      c().setClaimable(_pair, v().claimable(_pair) + _minted);
+      minted += _minted;
+    }
+    c().setPollsMinted(_poll, p.amount);
     c().setPollsPhase(_poll, 2);
-  }
-
-  function closeClaim (uint _poll) public{
-    v().existsPoll(_poll);
-    Poll memory p = v().getPoll(_poll);
-    require(IPool(p.pool).owner() == msgSender(), "only pool owner can execute");
-    require(p.phase == 2, "claim period not open");
-    address _pool = p.pool;
-    address _pair = v().getPair(_pool, v().free_topic());
-    c().setClaimable(_pair, v().claimable(_pair) + (p.amount - p.minted));
-    c().setPollsMinted(_poll, 0);
-    c().setPollsPhase(_poll, 3);
   }
   
   function _claim (uint _poll, uint _topic, uint _converted_amount, uint mintable, uint _amount) internal {
@@ -96,6 +80,7 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
     address _pair = v().getPair(_pool, _topic);
     ITopic(_pair).mint(msgSender(), mintable);
     c().setClaimable(_pair, v().claimable(_pair) + (_converted_amount - mintable));
+    e().vote(_poll, _topic, _amount, msgSender(), _pair, mintable, _converted_amount - mintable);
   }
   
   function _setPair (address _pool, uint _topic) internal {
@@ -108,14 +93,17 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
   function vote (uint _poll, uint _amount, uint _topic) public {
     v().existsPoll(_poll);
     v().existsTopic(_topic);
-    Poll memory _Poll = v().getPoll(_poll);
-    require(_Poll.block_until >= block.number, "poll is over");
+    Poll memory p = v().getPoll(_poll);
+    require(p.block_until >= block.number, "poll is over");
+    require(p.amount - p.minted > 0, "pool is empty");
     require(v().getTopicVote(_poll, msgSender(), _topic) == 0, "already voted");
-    require(u().includes(_Poll.topics, _topic), "topic not votable");
+    require(u().includes(p.topics, _topic), "topic not votable");
     ICollector(a().collector()).collect(msgSender());
-    _setPair(_Poll.pool, _topic);
+    _setPair(p.pool, _topic);
     (uint mintable,  uint converted) = v().getMintable(_poll, _amount, _topic);
-    c().setPollsMinted(_poll, _Poll.minted + converted);
+    c().setPollTopicVotes(_poll, _topic, v().poll_topic_votes(_poll, _topic) + _amount);
+    c().pushPollTopics(_poll, _topic);
+    c().setPollsMinted(_poll, p.minted + converted);
     _claim(_poll, _topic, converted, mintable, _amount);
   }
   

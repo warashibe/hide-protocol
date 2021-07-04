@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../lib/NFT.sol";
 import "../interfaces/IPool.sol";
+import "../interfaces/IWithdraw.sol";
 import "../interfaces/ICollector.sol";
 import "./UseConfig.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
@@ -65,23 +66,26 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
     address item_owner = NFT(_nft).ownerOf(_id);
     uint _reward = _amount * v().creator_percentage() / 10000;
     ERC20Burnable(pair).burnFrom(msgSender(),_amount);
-    IPool(_pool).withdraw(item_owner, msgSender(), _amount);
-    c().setTotalShare(pair, v().total_share(pair) + _amount);
+    IWithdraw(a().withdraw()).withdraw(item_owner, msgSender(), _amount, IPool(_pool).token());
     c().setTotalKudos(pair, v().total_kudos(pair) + _amount);
     addShare(pair, _reward, item_owner);
     addShare(pair, _amount - _reward, msgSender());
+    e().burn(_nft, _id, msgSender(), item_owner, pair, _reward, _amount - _reward);
   }
   
   function addShare(address _pair, uint _amount, address _holder) internal {
-    uint current_share = v().share(_pair, _holder);
-    c().setShare(_pair, _holder, current_share + _amount);
-    c().setKudos(_pair, _holder, v().kudos(_pair, _holder) + _amount);
-    uint current_share_sqrt = u().sqrt(current_share);
-    uint new_share_sqrt = u().sqrt(current_share + _amount);
-    c().setShareSqrt(_pair, _holder, new_share_sqrt);
-    uint diff = new_share_sqrt - current_share_sqrt;
-    c().setTotalShareSqrt(_pair, v().total_share_sqrt(_pair) + diff);
-    
+    uint _balance = v().balanceOf(_pair, _holder);
+    uint _supply = v().total_share_sqrt(_pair);
+    uint _last_balance = v().share_sqrt(_pair, _holder);
+    uint _new_balance = u().sqrt(_balance + _amount);
+    uint diff = _new_balance - _last_balance;
+    uint _totalSupply = v().totalSupply(_pair) + _balance + diff - _last_balance;
+    uint _lastSupply = _supply + diff;
+    c().setTotalShareSqrt(_pair, _totalSupply);
+    c().setShareSqrt(_pair, _holder, _new_balance);
+    c().setLastBlocks(_pair, _holder, block.number);
+    c().setLastBlock(_pair, block.number);
+    c().setLastSupply(_pair, _lastSupply);
   }
   
 }

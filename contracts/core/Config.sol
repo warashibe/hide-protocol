@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/ITopic.sol";
 import "../interfaces/IStorage.sol";
+import "../interfaces/ISet.sol";
 import "../interfaces/IPool.sol";
 import "../interfaces/IUtils.sol";
 import "../interfaces/IViewer.sol";
@@ -19,6 +20,14 @@ contract Config is Ownable {
   }
   
   /* storage adaptors */
+
+  function _pushUintSet(bytes memory _key, uint _uint) internal{
+    return ISet(IAddresses(addr).set()).pushUintSet(keccak256(_key), _uint);
+  }
+  
+  function _removeUintSet(bytes memory _key, uint _uint) internal{
+    return ISet(IAddresses(addr).set()).removeUintSet(keccak256(_key), _uint);
+  }
   
   function _setString(bytes memory _key, string memory _str) internal{
     return IStorage(IAddresses(addr).store()).setString(keccak256(_key), _str);
@@ -46,6 +55,24 @@ contract Config is Ownable {
   
   /* protocol parameters */
 
+  function setLastBlock(address _addr, uint _uint) external {
+    return _setUint(abi.encode("lastBlock", _addr), _uint);
+  }
+  
+  function setLastSupply(address _addr, uint _uint) external {
+    return _setUint(abi.encode("lastSupply", _addr), _uint);
+  }
+  
+  function setLastBlocks(address _addr, address _addr2, uint _uint) external {
+    return _setUint(abi.encode("lastBlocks", _addr, _addr2), _uint);
+  }
+  
+  function setDilutionRate(uint _numerator, uint _denominator) public onlyOwner {
+    require(_numerator <= _denominator, "numerator must be less than or equal to denominator");
+    _setUint(abi.encode("dilution_numerator"), _numerator);
+    _setUint(abi.encode("dilution_denominator"), _denominator);
+  }
+  
   function setFreigeldRate(uint _numerator, uint _denominator) public onlyOwner {
     require(_numerator <= _denominator, "numerator must be less than or equal to denominator");
     _setUint(abi.encode("freigeld_numerator"), _numerator);
@@ -67,7 +94,18 @@ contract Config is Ownable {
   }
 
   /* protocol state setters */
+
   
+  function pushPollTopics(uint _uint1, uint _uint2) external {
+    IViewer(IAddresses(addr).viewer()).onlyGovernance(msg.sender);
+    _pushUintSet(abi.encode("poll_topics", _uint1), _uint2);
+  }
+  
+  function setPollTopicVotes(uint _uint1, uint _uint2, uint _uint3) external {
+    IViewer(IAddresses(addr).viewer()).onlyGovernance(msg.sender);
+    _setUint(abi.encode("poll_topic_votes", _uint1, _uint2), _uint3);
+  }
+
   function setItemTopics(address _addr, uint _uint, uint[] memory _uint_arr) external {
     IViewer(IAddresses(addr).viewer()).onlyMarket(msg.sender);
     _setUintArray(abi.encode("item_topics",_addr, _uint), _uint_arr);
@@ -108,11 +146,6 @@ contract Config is Ownable {
     _setAddress(abi.encode("pairs", _addr1, _uint), _addr2);
   }
   
-  function setTotalShare(address _addr, uint _uint) external {
-    IViewer(IAddresses(addr).viewer()).onlyDEXOrMarket(msg.sender);
-    _setUint(abi.encode("total_share",_addr), _uint);
-  }
-  
   function setTotalShareSqrt(address _addr, uint _uint) external {
     IViewer(IAddresses(addr).viewer()).onlyDEXOrMarket(msg.sender);
     _setUint(abi.encode("total_share_sqrt",_addr), _uint);
@@ -148,9 +181,9 @@ contract Config is Ownable {
     _setUint(abi.encode("share_sqrt",_addr1, _addr2), _uint);
   }
 
-  function setPolls(address _pool, uint _amount, uint _block, uint[] memory _topics) external {
+  function setPolls(address _pool, uint _amount, uint _block, uint[] memory _topics) external returns (uint _count) {
     IViewer(IAddresses(addr).viewer()).onlyGovernance(msg.sender);
-    uint _count = IViewer(IAddresses(addr).viewer()).poll_count();
+    _count = IViewer(IAddresses(addr).viewer()).poll_count();
     _setUint(abi.encode("polls", _count, "phase"), 1);
     _setUint(abi.encode("polls", _count, "id"), _count);
     _setAddress(abi.encode("polls", _count, "pool"), _pool);
@@ -183,6 +216,11 @@ contract Config is Ownable {
   function setPollsMintable(uint _poll, uint _uint) external {
     IViewer(IAddresses(addr).viewer()).onlyGovernance(msg.sender);
     _setUint(abi.encode("polls", _poll, "mintable"), _uint);
+  }
+  
+  function setPollAmount(uint _poll, uint _uint) external {
+    IViewer(IAddresses(addr).viewer()).onlyGovernanceOrWithdraw(msg.sender);
+    _setUint(abi.encode("polls", _poll, "amount"), _uint);
   }
   
   function setPollsPhase(uint _poll, uint _uint) external {

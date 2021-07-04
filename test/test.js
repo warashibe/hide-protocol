@@ -15,7 +15,7 @@ const {
 } = require("./utils")
 
 describe("Unit", () => {
-  let str, cfg, utils, viewer, addr
+  let str, cfg, utils, viewer, addr, set
   let ac, p1, p2, p3
   beforeEach(async () => {
     ac = await ethers.getSigners()
@@ -25,6 +25,7 @@ describe("Unit", () => {
   describe("Storage", () => {
     beforeEach(async () => {
       str = await deploy("Storage")
+      set = await deploy("Set")
     })
     it("should allow only EDITOR", async () => {
       await isErr(str.connect(p2).setUint(to32("key"), 3))
@@ -39,19 +40,38 @@ describe("Unit", () => {
       str.setUintArray(to32("key"), [1, 2, 3])
       expect(arr(await str.getUintArray(to32("key")))).to.eql([1, 2, 3])
     })
+    it("should keep uniq set", async () => {
+      set.pushUintSet(to32("key"), 1)
+      set.pushUintSet(to32("key"), 2)
+      set.pushUintSet(to32("key"), 3)
+      expect(arr(await set.getUintSet(to32("key")))).to.eql([1, 2, 3])
+      expect((await set.getUintSetAt(to32("key"), 0)) * 1).to.eql(1)
+      await set.pushUintSet(to32("key"), 4)
+      expect(arr(await set.getUintSet(to32("key")))).to.eql([1, 2, 3, 4])
+      await set.removeUintSet(to32("key"), 2)
+      expect(arr(await set.getUintSet(to32("key")))).to.eql([1, 4, 3])
+      await set.removeUintSet(to32("key"), 3)
+      expect(arr(await set.getUintSet(to32("key")))).to.eql([1, 4])
+      await set.removeUintSet(to32("key"), 1)
+      expect(arr(await set.getUintSet(to32("key")))).to.eql([4])
+      expect(arr(await set.getUintSet(to32("key"))).length).to.eql(1)
+    })
   })
 
   describe("Config", () => {
     beforeEach(async () => {
       str = await deploy("Storage")
+      set = await deploy("Set")
       addr = await deploy("Addresses", a(str))
       await str.addEditor(a(addr))
+      await addr.setSet(a(set))
       utils = await deploy("Utils")
       addr.setUtils(a(utils))
       viewer = await deploy("Viewer", a(addr))
       addr.setViewer(a(viewer))
       cfg = await deploy("Config", a(addr))
       await str.addEditor(a(cfg))
+      await set.addEditor(a(cfg))
       addr.setConfig(a(cfg))
     })
     it("should persist with Storage", async () => {
@@ -73,9 +93,11 @@ describe("Integration", () => {
     agt,
     wp,
     gov,
+    withdraw,
     pool,
     jpyc,
     market,
+    events,
     nft,
     p,
     cfg,
@@ -85,8 +107,22 @@ describe("Integration", () => {
     str,
     utils,
     viewer,
-    addr
+    addr,
+    set
   let ac, owner, collector, p1, p2, p3
+  const checkEqualty = async pairs => {
+    let total = B(from18(await viewer.getAvailable(0)))
+    for (const v of pairs) {
+      const pair = await viewer.getPair(p, v)
+      const pToken = new Contract(pair, _IERC20.abi, owner)
+      total = total
+        .add(from18(await pToken.totalSupply()))
+        .add(from18(await viewer.claimable(pair)))
+    }
+    expect(B(from18(await jpyc.balanceOf(a(withdraw)))).toFixed(0)).to.equal(
+      total.toFixed(0)
+    )
+  }
 
   beforeEach(async () => {
     ac = await ethers.getSigners()
@@ -101,9 +137,17 @@ describe("Integration", () => {
     // Storage
     str = await deploy("Storage")
 
+    // Set
+    set = await deploy("Set")
+
     // Addresses
     addr = await deploy("Addresses", a(str))
     await str.addEditor(a(addr))
+    await addr.setSet(a(set))
+
+    // Events
+    events = await deploy("Events", a(addr))
+    await addr.setEvents(a(events))
 
     // Utils
     utils = await deploy("Utils")
@@ -117,8 +161,10 @@ describe("Integration", () => {
     cfg = await deploy("Config", a(addr))
     await addr.setConfig(a(cfg))
     await str.addEditor(a(cfg))
+    await set.addEditor(a(cfg))
     await cfg.setCreatorPercentage(8000)
     await cfg.setFreigeldRate(63419584, 1000000000000000)
+    await cfg.setDilutionRate(63419584, 1000000000000000)
 
     // Collector
     col = await deploy(
@@ -130,6 +176,10 @@ describe("Integration", () => {
     await addr.setCollector(a(col))
     agt = await deploy("Agent", a(col))
     await col.addAgent(a(agt))
+
+    // Withdraw
+    withdraw = await deploy("Withdraw", a(addr))
+    await addr.setWithdraw(a(withdraw))
 
     // Transfer
     await wp.transfer(a(p1), to18(100))
@@ -149,6 +199,7 @@ describe("Integration", () => {
     gov = await deploy("Governance", a(addr))
     await addr.setGovernance(a(gov))
     await col.addAgent(a(gov))
+    await events.addEmitter(a(gov))
 
     // Factory
     fct = await deploy("Factory", a(addr))
@@ -179,18 +230,19 @@ describe("Integration", () => {
     await nft.addMinter(a(market))
     await addr.setMarket(a(market))
     await col.addAgent(a(market))
+    await events.addEmitter(a(market))
 
     // DEX
     dex = await deploy("DEX", a(addr))
     await addr.setDEX(a(dex))
     await col.addAgent(a(dex))
+    await events.addEmitter(a(dex))
 
     // Pool
     pool = await deploy("Pool", a(jpyc), a(addr))
 
     await gov.addPool(a(pool), "JPYC")
     p = await viewer.getPool("JPYC")
-    await jpyc.transfer(a(pool), to18(10000))
 
     // Create Topics
     await fct.createTopic("TOPIC1", "topic1")
@@ -216,11 +268,12 @@ describe("Integration", () => {
     expect(await pool.getVP(a(p1))).to.equal(to18(100))
     expect(await pool.getVP(a(p2))).to.equal(to18(100))
     expect(await pool.getVP(a(p3))).to.equal(to18(100))
-    expect(await pool.available()).to.equal(to18(10000))
 
     // updateItem topics
     await market.connect(p3).updateItem(a(nft), 2, [2])
+
     // set poll
+    await jpyc.approve(a(gov), UINT_MAX)
     await gov.setPoll(p, to18(1000), 30, [])
 
     // vote for topic
@@ -236,49 +289,41 @@ describe("Integration", () => {
     await market.connect(p1).burnFor(a(nft), 2, p, 2, to18(5))
     expect(await jpyc.balanceOf(a(p1))).to.equal(to18(101))
     expect(await jpyc.balanceOf(a(p3))).to.equal(to18(104))
-    expect(await jpyc.balanceOf(p)).to.equal(to18(9995))
+    expect(await jpyc.balanceOf(a(withdraw))).to.equal(to18(995))
 
     // vote for topic with shareholders
     const mintable = await viewer.getMintable(0, to18(30), 2)
     await gov.connect(p3).vote(0, to18(30), 2)
     expect(await pToken2.balanceOf(a(p3))).to.equal(mintable.mintable)
 
-    const share = (await viewer.share_sqrt(a(pToken2), a(p1))).toString() * 1
+    const share = (await viewer.balanceOf(a(pToken2), a(p1))).toString() * 1
+    const minus = B((await viewer.share_sqrt(pair2, a(p1))).toString())
+      .mul(B((await viewer.dilution_numerator()).toString()))
+      .div(B((await viewer.dilution_denominator()).toString()))
     const convertible = (
       await viewer.getConvertibleAmount(a(pToken2), share, a(p1))
     ).toString()
     const balance = (await pToken2.balanceOf(a(p1))).toString()
-    await dex.connect(p1).convert(a(pToken2), share)
+    await dex.connect(p1).convert(a(pToken2), B(share).minus(minus).toFixed(0))
+    const balance2 = (await pToken2.balanceOf(a(p1))).toString()
     expect(
-      B((await pToken2.balanceOf(a(p1))).toString())
+      B(balance2)
         .minus(balance * 1)
-        .minus(convertible * 1)
         .toNumber()
-    ).to.be.gt(0)
-
+    ).to.be.lt(0)
     // close poll => claim period
     await gov.closePoll(0)
     await isErr(gov.connect(p3).vote(0, to18(30), 2))
-    expect(await viewer.getClaimable(0, a(p1))).to.equal(to18(240))
-    expect(await viewer.getClaimable(0, a(p3))).to.equal(to18(720))
-    await gov.connect(p1).mint(0, to18(240), 3)
-    const pair3 = await viewer.getPair(p, 3)
-    const pToken3 = new Contract(pair3, _IERC20.abi, owner)
-    expect(await viewer.getClaimable(0, a(p1))).to.equal(to18(0))
-    expect(await pToken3.balanceOf(a(p1))).to.equal(to18(240))
 
-    // close claim => free topic gets the rest
-    await gov.closeClaim(0)
-    await isErr(gov.connect(p1).mint(0, to18(240), 3))
-    const pair1 = await viewer.getPair(p, 1)
-    const pToken1 = new Contract(pair1, _IERC20.abi, owner)
-    expect(await viewer.claimable(a(pToken1))).to.equal(to18(720))
+    // check remaining amounts
+    await checkEqualty([2])
   })
 
   it("should upgrade contracts", async () => {
     // Addresses
     addr = await deploy("Addresses", a(str))
     await str.addEditor(a(addr))
+    await addr.setSet(a(set))
     await addr.setCollector(a(col))
 
     // Config
@@ -298,6 +343,7 @@ describe("Integration", () => {
     gov = await deploy("Governance", a(addr))
     await addr.setGovernance(a(gov))
     await col.addAgent(a(gov))
+    await events.addEmitter(a(gov))
 
     // Factory
     fct = await deploy("Factory", a(addr))
@@ -318,7 +364,101 @@ describe("Integration", () => {
     await nft.addMinter(a(market))
     await addr.setMarket(a(market))
     await col.addAgent(a(market))
+    await events.addEmitter(a(gov))
 
     await fct.createTopic("TOPIC3", "topic3")
+  })
+
+  it("should add/remove fund to poll", async () => {
+    // set poll
+    await jpyc.approve(a(gov), UINT_MAX)
+    await gov.setPoll(p, to18(10), 30, [])
+    let poll = await viewer.getPoll(0)
+    expect(from18(B(poll.amount).sub(poll.minted).toFixed()) * 1).to.equal(10)
+
+    // add fund
+    await jpyc.approve(a(withdraw), UINT_MAX)
+    await withdraw.addFund(0, to18(10))
+    poll = await viewer.getPoll(0)
+    expect(from18(B(poll.amount).sub(poll.minted).toFixed()) * 1).to.equal(20)
+    expect(from18(await jpyc.balanceOf(a(withdraw))) * 1).to.equal(20)
+    await gov.connect(p1).vote(0, to18(30), 2)
+    poll = await viewer.getPoll(0)
+    expect(from18(B(poll.amount).sub(poll.minted).toFixed()) * 1).to.equal(18)
+
+    // remove fund
+    await isErr(withdraw.removeFund(0, to18(20)))
+    await isErr(withdraw.connect(p2).removeFund(0, to18(18)))
+    await withdraw.removeFund(0, to18(18))
+    await isErr(gov.connect(p1).vote(0, to18(30), 2))
+    poll = await viewer.getPoll(0)
+    expect(from18(B(poll.amount).sub(poll.minted).toFixed()) * 1).to.equal(0)
+  })
+
+  it.only("should hold correct remaining fund", async () => {
+    // set poll
+    await jpyc.approve(a(gov), UINT_MAX)
+    await gov.setPoll(p, to18(1000), 30, [])
+
+    // vote for topic
+    await gov.connect(p1).vote(0, to18(100), 2)
+
+    // update item topic
+    await market.connect(p3).updateItem(a(nft), 2, [2])
+
+    // get pair token 2
+    const pair2 = await viewer.getPair(p, 2)
+    const pToken2 = new Contract(pair2, _IERC20.abi, owner)
+
+    await checkEqualty([2])
+
+    // burn for item
+    await pToken2.connect(p1).approve(a(market), UINT_MAX)
+    await market.connect(p1).burnFor(a(nft), 2, p, 2, to18(5))
+    expect(await jpyc.balanceOf(a(p1))).to.equal(to18(101))
+    expect(await jpyc.balanceOf(a(p3))).to.equal(to18(104))
+    expect(await jpyc.balanceOf(a(withdraw))).to.equal(to18(995))
+
+    await checkEqualty([2])
+
+    // vote for topic with shareholders
+    const mintable = await viewer.getMintable(0, to18(30), 2)
+    await gov.connect(p3).vote(0, to18(30), 2)
+    expect(await pToken2.balanceOf(a(p3))).to.equal(mintable.mintable)
+
+    await checkEqualty([2])
+
+    const share = (await viewer.balanceOf(a(pToken2), a(p1))).toString() * 1
+    const minus = B((await viewer.share_sqrt(pair2, a(p1))).toString())
+      .mul(B((await viewer.dilution_numerator()).toString()))
+      .div(B((await viewer.dilution_denominator()).toString()))
+    const convertible = (
+      await viewer.getConvertibleAmount(a(pToken2), share, a(p1))
+    ).toString()
+    const balance = (await pToken2.balanceOf(a(p1))).toString()
+    await dex.connect(p1).convert(a(pToken2), B(share).minus(minus).toFixed(0))
+    const balance2 = (await pToken2.balanceOf(a(p1))).toString()
+    expect(
+      B(balance2)
+        .minus(balance * 1)
+        .toNumber()
+    ).to.be.lt(0)
+
+    await checkEqualty([2])
+
+    // close poll => claim period
+    await gov.closePoll(0)
+    await isErr(gov.connect(p3).vote(0, to18(30), 2))
+
+    await checkEqualty([2])
+
+    // burn for item
+    await pToken2.connect(p1).approve(a(market), UINT_MAX)
+    await market.connect(p1).burnFor(a(nft), 2, p, 2, to18(5))
+    expect(await jpyc.balanceOf(a(p1))).to.equal(to18(102))
+    expect(await jpyc.balanceOf(a(p3))).to.equal(to18(108))
+    expect(await jpyc.balanceOf(a(withdraw))).to.equal(to18(990))
+
+    await checkEqualty([1, 2])
   })
 })

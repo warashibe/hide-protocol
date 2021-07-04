@@ -10,6 +10,10 @@ interface IAddresses {
   function governance() external view returns(address);
   
   function market() external view returns(address);
+
+  function events() external view returns(address);
+  
+  function withdraw() external view returns(address);
   
   function collector() external view returns(address);
   
@@ -25,6 +29,8 @@ interface IAddresses {
 
   function store() external view returns(address);
 
+  function set() external view returns(address);
+
   function viewer() external view returns(address);
   
   /* set contract addresses */
@@ -32,10 +38,14 @@ interface IAddresses {
   function setConfig(address _addr) external;
   
   function setGovernance(address _addr) external;
+
+  function setEvents(address _addr) external;
   
   function setTopics(address _addr) external;
   
   function setMarket(address _addr) external;
+
+  function setWithdraw(address _addr) external;
 
   function setCollector(address _addr) external;
 

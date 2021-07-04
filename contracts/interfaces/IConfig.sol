@@ -3,6 +3,18 @@ pragma solidity ^0.8.0;
 
 interface IConfig {
 
+  function setLastBlock(address _addr, uint _uint) external;
+  
+  function setLastSupply(address _addr, uint _uint) external;
+  
+  function setLastBlocks(address _addr, address _addr2, uint _uint) external;
+
+  function setDilutionRate(uint _numerator, uint _denominator) external;
+  
+  function setPollTopicVotes(uint _uint1, uint _uint2, uint _uint3) external;
+  
+  function pushPollTopics(uint _uint1, uint _uint2) external;
+  
   function setItemTopics(address _addr, uint _uint, uint[] memory _uint_arr) external;
 
   function deleteItemTopics(address _addr, uint _uint) external;
@@ -33,8 +45,6 @@ interface IConfig {
   
   function setTotalKudos(address _addr, uint _uint) external;
     
-  function setTotalShare(address _addr, uint _uint) external;
-  
   function setTotalShareSqrt(address _addr, uint _uint) external;
 
   function setClaimable(address _addr, uint _uint) external;
@@ -51,7 +61,9 @@ interface IConfig {
 
   function setFactory(address _addr) external;
   
-  function setPolls(address _pool, uint _amount, uint _block, uint[] memory _topics) external;
+  function setPolls(address _pool, uint _amount, uint _block, uint[] memory _topics) external returns (uint);
+  
+  function setPollAmount(uint _poll, uint _uint) external;
   
   function setPollTopics(uint _poll, uint[] memory _topics) external;
   

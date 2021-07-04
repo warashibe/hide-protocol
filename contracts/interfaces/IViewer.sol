@@ -31,11 +31,29 @@ interface IViewer {
 
   /* protocol parameters */
 
+  function totalSupply(address pair) external view returns (uint);
+  
+  function balanceOf(address pair, address account) external view returns (uint);
+    
+  function lastBlock() external view returns(uint);
+  
+  function lastSupply() external view returns(uint);
+  
+  function lastBlocks(address _addr) external view returns(uint);
+
+  function poll_topic_votes(uint _uint, uint _topic) external view returns(uint);
+  
+  function poll_topics(uint _uint) external view returns(uint[] memory);
+  
   function item_topics(address _addr, uint _uint) external view returns(uint[] memory);
   
   function items(address _addr, uint _uint) external view returns(bool);
 
   function item_indexes(string memory _str) external view returns(address, uint);
+
+  function dilution_numerator () external view returns (uint);
+  
+  function dilution_denominator () external view returns (uint);
   
   function freigeld_numerator () external view returns (uint);
   
@@ -65,7 +83,7 @@ interface IViewer {
   
   function total_kudos(address _addr) external view returns(uint);
   
-  function total_share(address _addr) external view returns(uint);
+  //function total_share(address _addr) external view returns(uint);
   
   function total_share_sqrt(address _addr) external view returns(uint);
   
@@ -86,7 +104,9 @@ interface IViewer {
   
   /* state aggrigators */
 
-  function getConvertibleAmount(address _pair, uint _amount, address _holder) external view returns(uint mintable);
+  function getConvertibleAmount(address _pair, uint _amount, address _holder) external view returns(uint);
+
+  function getAvailable (uint _poll) external view returns (uint);
   
   function getMintable (uint _poll, uint _amount, uint _topic) external view returns (uint mintable, uint converted);
   
@@ -96,16 +116,11 @@ interface IViewer {
   
   function getTopicVote(uint _uint1, address _addr, uint _uint2) external view returns (uint);
   
-  function getMinted(uint _uint, address _addr) external view returns (uint);
+  function getPair(address _pool, uint _topic) external view returns (address);
   
+  function getPool (string memory _name) external view returns (address);
   
-  function getPair(address _pool, uint _topic) external view returns (address _token);
-  
-  function getClaimable (uint _poll, address _voter) external view returns (uint _amount);
-
-  function getPool (string memory _name) external view returns (address _addr);
-  
-  function getConvertible (address _pair) external view returns (uint _amount);
+  function getConvertible (address _pair) external view returns (uint);
 
   
   /* exists */
@@ -117,6 +132,8 @@ interface IViewer {
 
   /* modifiers */
   function onlyGovernanceOrDEX(address _sender) external view;
+
+  function onlyGovernanceOrWithdraw(address _sender) external view;
   
   function onlyGovernance(address _sender) external view;
   

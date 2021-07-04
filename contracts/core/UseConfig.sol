@@ -5,6 +5,7 @@ import "../interfaces/IConfig.sol";
 import "../interfaces/IUtils.sol";
 import "../interfaces/IViewer.sol";
 import "../interfaces/IAddresses.sol";
+import "../interfaces/IEvents.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract UseConfig is Ownable {
@@ -28,6 +29,10 @@ contract UseConfig is Ownable {
 
   function a() internal view returns (IAddresses) {
     return IAddresses(_addresses);
+  }
+
+  function e() internal view returns (IEvents) {
+    return IEvents(IAddresses(_addresses).events());
   }
   
   function addresses() external view returns (address) {

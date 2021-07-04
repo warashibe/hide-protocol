@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 import "../interfaces/ITopic.sol";
 import "../interfaces/IStorage.sol";
+import "../interfaces/ISet.sol";
 import "../interfaces/IPool.sol";
 import "../interfaces/IUtils.sol";
 import "../interfaces/IAddresses.sol";
@@ -45,6 +46,14 @@ contract Viewer {
   function _getUint(bytes memory _key) internal view returns(uint){
     return IStorage(IAddresses(addr).store()).getUint(keccak256(_key));
   }
+
+  function _getUintSet(bytes memory _key) internal view returns(uint[] memory){
+    return ISet(IAddresses(addr).set()).getUintSet(keccak256(_key));
+  }
+  
+  function _getUintSetAt(bytes memory _key, uint _i) internal view returns(uint){
+    return ISet(IAddresses(addr).set()).getUintSetAt(keccak256(_key), _i);
+  }
   
   function _getBool(bytes memory _key) internal view returns(bool){
     return IStorage(IAddresses(addr).store()).getBool(keccak256(_key));
@@ -82,6 +91,36 @@ contract Viewer {
 
   /* protocol parameters */
 
+  function totalSupply(address pair) public view returns (uint256 _supply) {
+    uint256 minus = dilution_denominator() == 0 ? 0 : total_share_sqrt(pair) * (block.number - lastBlock(pair)) * dilution_numerator() / dilution_denominator();
+    _supply = lastSupply(pair) > minus ? lastSupply(pair) - minus : 0;
+  }
+
+  function balanceOf(address pair, address account) public view returns (uint _balance) {
+    uint minus = dilution_denominator() == 0 ? 0 : share_sqrt(pair, account) * (block.number - lastBlocks(pair, account)) * dilution_numerator() / dilution_denominator();
+    _balance =  share_sqrt(pair, account) > minus ? share_sqrt(pair, account) - minus : 0;
+  }
+
+  function lastBlock(address _addr) public view returns(uint) {
+    return _getUint(abi.encode("lastBlock", _addr));
+  }
+  
+  function lastSupply(address _addr) public view returns(uint) {
+    return _getUint(abi.encode("lastSupply", _addr));
+  }
+  
+  function lastBlocks(address _addr, address _addr2) public view returns(uint) {
+    return _getUint(abi.encode("lastBlocks", _addr, _addr2));
+  }
+  
+  function poll_topics(uint _uint) public view returns(uint[] memory) {
+    return _getUintSet(abi.encode("poll_topics", _uint));
+  }
+
+  function poll_topic_votes(uint _uint, uint _topic) public view returns(uint) {
+    return _getUint(abi.encode("poll_topic_votes", _uint, _topic));
+  }
+  
   function item_topics(address _addr, uint _uint) public view returns(uint[] memory) {
     return _getUintArray(abi.encode("item_topics", _addr, _uint));
   }
@@ -96,6 +135,14 @@ contract Viewer {
   
   function freigeld_denominator () public view returns (uint){
     return _getUint(abi.encode("freigeld_denominator"));
+  }
+
+  function dilution_numerator () public view returns (uint){
+    return _getUint(abi.encode("dilution_numerator"));
+  }
+  
+  function dilution_denominator () public view returns (uint){
+    return _getUint(abi.encode("dilution_denominator"));
   }
   
   function creator_percentage () public view returns (uint){
@@ -159,9 +206,9 @@ contract Viewer {
     return _getUint(abi.encode("total_kudos",_addr));
   }
   
-  function total_share(address _addr) public view returns(uint){
+  /*  function total_share(address _addr) public view returns(uint){
     return _getUint(abi.encode("total_share",_addr));
-  }
+    }*/
   
   function total_share_sqrt(address _addr) public view returns(uint){
     return _getUint(abi.encode("total_share_sqrt",_addr));
@@ -199,21 +246,28 @@ contract Viewer {
   /* state aggrigators */
 
   function getConvertibleAmount(address _pair, uint _amount, address _holder) public view returns(uint mintable){
-    uint _share_sqrt = share_sqrt(_pair, _holder);
+    //uint _share_sqrt = share_sqrt(_pair, _holder);
+    uint _share_sqrt = balanceOf(_pair, _holder);
     if(_amount > _share_sqrt){
       mintable = 0;
     }else{
-      uint total_sqrt = total_share_sqrt(_pair);
+      //uint total_sqrt = total_share_sqrt(_pair);
+      uint total_sqrt = totalSupply(_pair);
       uint claimable_amount = getConvertible(_pair);
       mintable = claimable_amount * _amount / total_sqrt;
     }
   }
+
+  function getAvailable (uint _poll) public view returns (uint available){
+    Poll memory _Poll = getPoll(_poll);
+    available = _Poll.amount - _Poll.minted;
+  }
   
   function getMintable (uint _poll, uint _amount, uint _topic) public view returns (uint mintable, uint converted){
     Poll memory _Poll = getPoll(_poll);
-    converted = (_Poll.amount - _Poll.minted) * _amount / IPool(_Poll.pool).getTotalVP();
+    converted = getAvailable(_poll) * _amount / IPool(_Poll.pool).getTotalVP();
     uint sqrt_amount = sqrt(converted);
-    uint sqrt_share = sqrt(total_share(getPair(_Poll.pool,_topic)));
+    uint sqrt_share = total_share_sqrt(getPair(_Poll.pool,_topic));//sqrt(total_share(getPair(_Poll.pool,_topic)));
     mintable = converted * sqrt_amount / (sqrt_amount + sqrt_share);
   }
   
@@ -228,25 +282,9 @@ contract Viewer {
   function getTopicVote(uint _uint1, address _addr, uint _uint2) public view returns (uint) {
     return topic_votes(_uint1, _addr, _uint2);
   }
-  
-  function getMinted(uint _uint, address _addr) public view returns (uint) {
-    return minted(_uint, _addr);
-  }  
-  
-  
   function getPair(address _pool, uint _topic) public view returns (address _token) {
     _token = pairs(IPool(_pool).token(), _topic);
   }
-  
-  function getClaimable (uint _poll, address _voter) public view returns (uint _amount){
-    if(getPoll(_poll).block_until == 0){
-      _amount = 0;
-    }else{
-      Poll memory p = getPoll(_poll);
-      _amount = (p.mintable * getVote(_poll, _voter) / p.total_votes) - getMinted(_poll, _voter);
-    }
-  }
-
   function getPool (string memory _name) public view returns (address _addr) {
     require(pool_addresses(_name) != address(0), "pool does not exist");
     _addr = pool_addresses(_name);
@@ -278,6 +316,10 @@ contract Viewer {
 
   function onlyGovernanceOrDEX(address _sender) public view {
     require(_sender == IAddresses(addr).governance() || _sender == IAddresses(addr).dex(), "only governance or DEX can execute");
+  }
+  
+  function onlyGovernanceOrWithdraw(address _sender) public view {
+    require(_sender == IAddresses(addr).governance() || _sender == IAddresses(addr).withdraw(), "only governance or withdraw can execute");
   }
 
   function onlyGovernance (address _sender) public view {

@@ -28,7 +28,11 @@ contract Addresses is Ownable {
   function store() public view returns(address) {
     return _store;
   }
-  
+
+  function set() public view returns(address) {
+    return _getAddress(abi.encode("set"));
+  }
+
   function config() public view returns(address) {
     return _getAddress(abi.encode("config"));
   }
@@ -36,9 +40,17 @@ contract Addresses is Ownable {
   function governance() public view returns(address) {
     return _getAddress(abi.encode("governance"));
   }
+
+  function events() public view returns(address) {
+    return _getAddress(abi.encode("events"));
+  }
   
   function market() public view returns(address) {
     return _getAddress(abi.encode("market"));
+  }
+  
+  function withdraw() public view returns(address) {
+    return _getAddress(abi.encode("withdraw"));
   }
   
   function collector() public view returns(address) {
@@ -86,7 +98,15 @@ contract Addresses is Ownable {
   function setMarket(address _addr) public onlyOwner {
     _setAddress(abi.encode("market"),_addr);
   }
+  
+  function setEvents(address _addr) public onlyOwner {
+    _setAddress(abi.encode("events"),_addr);
+  }
 
+  function setWithdraw(address _addr) public onlyOwner {
+    _setAddress(abi.encode("withdraw"),_addr);
+  }
+  
   function setCollector(address _addr) public onlyOwner {
     _setAddress(abi.encode("collector"),_addr);
   }
@@ -105,6 +125,10 @@ contract Addresses is Ownable {
 
   function setStore(address _addr) public onlyOwner {
     _store = _addr;
+  }
+  
+  function setSet(address _addr) public onlyOwner {
+    _setAddress(abi.encode("set"),_addr);
   }
   
   function setViewer(address _addr) public onlyOwner {
