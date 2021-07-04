@@ -3,13 +3,14 @@ pragma solidity ^0.8.0;
 import "../interfaces/ITopic.sol";
 import "../interfaces/IStorage.sol";
 import "../interfaces/ISet.sol";
-import "../interfaces/IPool.sol";
+import "../interfaces/IVP.sol";
 import "../interfaces/IUtils.sol";
 import "../interfaces/IAddresses.sol";
 
 struct Poll {
   uint id;
   address pool;
+  address token;
   uint block_until;
   uint amount;
   uint minted;
@@ -169,7 +170,8 @@ contract Viewer {
       total_votes: _getUint(abi.encode("polls", _uint, "total_votes")),
       mintable: _getUint(abi.encode("polls", _uint, "mintable")),
       minted: _getUint(abi.encode("polls", _uint, "minted")),
-      topics: _getUintArray(abi.encode("polls", _uint, "topics"))
+      topics: _getUintArray(abi.encode("polls", _uint, "topics")),
+      token: _getAddress(abi.encode("polls", _uint, "token")) 
     });
   }
 
@@ -198,6 +200,14 @@ contract Viewer {
     return _getAddress(abi.encode("pairs",_addr, _uint));
   }
 
+  function pair_tokens(address _addr) public view returns(address){
+    return _getAddress(abi.encode("pair_tokens",_addr));
+  }
+
+  function pair_topics(address _addr) public view returns(uint){
+    return _getUint(abi.encode("pair_topics",_addr));
+  }
+  
   function kudos(address _addr1, address _addr2) public view returns(uint){
     return _getUint(abi.encode("kudos",_addr1, _addr2));
   }
@@ -205,10 +215,6 @@ contract Viewer {
   function total_kudos(address _addr) public view returns(uint){
     return _getUint(abi.encode("total_kudos",_addr));
   }
-  
-  /*  function total_share(address _addr) public view returns(uint){
-    return _getUint(abi.encode("total_share",_addr));
-    }*/
   
   function total_share_sqrt(address _addr) public view returns(uint){
     return _getUint(abi.encode("total_share_sqrt",_addr));
@@ -246,12 +252,10 @@ contract Viewer {
   /* state aggrigators */
 
   function getConvertibleAmount(address _pair, uint _amount, address _holder) public view returns(uint mintable){
-    //uint _share_sqrt = share_sqrt(_pair, _holder);
     uint _share_sqrt = balanceOf(_pair, _holder);
     if(_amount > _share_sqrt){
       mintable = 0;
     }else{
-      //uint total_sqrt = total_share_sqrt(_pair);
       uint total_sqrt = totalSupply(_pair);
       uint claimable_amount = getConvertible(_pair);
       mintable = claimable_amount * _amount / total_sqrt;
@@ -259,20 +263,16 @@ contract Viewer {
   }
 
   function getAvailable (uint _poll) public view returns (uint available){
-    Poll memory _Poll = getPoll(_poll);
+    Poll memory _Poll = polls(_poll);
     available = _Poll.amount - _Poll.minted;
   }
   
   function getMintable (uint _poll, uint _amount, uint _topic) public view returns (uint mintable, uint converted){
-    Poll memory _Poll = getPoll(_poll);
-    converted = getAvailable(_poll) * _amount / IPool(_Poll.pool).getTotalVP();
+    Poll memory p = polls(_poll);
+    converted = getAvailable(_poll) * _amount / IVP(p.pool).getTotalVP();
     uint sqrt_amount = sqrt(converted);
-    uint sqrt_share = total_share_sqrt(getPair(_Poll.pool,_topic));//sqrt(total_share(getPair(_Poll.pool,_topic)));
+    uint sqrt_share = total_share_sqrt(getPair(_poll, _topic));
     mintable = converted * sqrt_amount / (sqrt_amount + sqrt_share);
-  }
-  
-  function getPoll(uint _poll) public view returns (Poll memory) {
-    return polls(_poll);
   }
   
   function getVote(uint _uint, address _addr) public view returns (uint) {
@@ -282,8 +282,8 @@ contract Viewer {
   function getTopicVote(uint _uint1, address _addr, uint _uint2) public view returns (uint) {
     return topic_votes(_uint1, _addr, _uint2);
   }
-  function getPair(address _pool, uint _topic) public view returns (address _token) {
-    _token = pairs(IPool(_pool).token(), _topic);
+  function getPair(uint _poll, uint _topic) public view returns (address _token) {
+    _token = pairs(polls(_poll).token, _topic);
   }
   function getPool (string memory _name) public view returns (address _addr) {
     require(pool_addresses(_name) != address(0), "pool does not exist");
@@ -301,13 +301,14 @@ contract Viewer {
   }
   
   function existsPoll (uint _poll) external view {
-    require(getPoll(_poll).block_until != 0, "poll does not exist");
+    require(polls(_poll).block_until != 0, "poll does not exist");
   }
   
   function existsTopic (uint _topic) external view {
     require(bytes(topic_names(_topic)).length != 0, "topic does not exist");
   }
 
+  
   /* modifiers */
   
   function onlyDEXOrMarket(address _sender) public view {

@@ -3,7 +3,7 @@ const { expect } = require("chai")
 const { ethers } = require("hardhat")
 const { utils } = ethers
 
-module.exports.to18 = n => utils.parseEther(B(n).toFixed(0))
+module.exports.to18 = n => utils.parseEther(B(n).toFixed())
 
 module.exports.from18 = utils.formatEther
 

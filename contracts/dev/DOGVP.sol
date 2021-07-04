@@ -4,22 +4,23 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../core/UseConfig.sol";
+import "../dev/IWPVP.sol";
 
-contract Pool is Ownable, UseConfig {
-  address public token;
+contract DOGVP is Ownable, UseConfig {
   mapping(address => uint) used_vp;
   uint public total_used_vp;
-
-  constructor(address _token, address _addr) UseConfig(_addr) {
-    token = _token;
+  address public vp;
+  
+  constructor(address _addr, address _addr2) UseConfig(_addr2) {
+    vp = _addr;
   }
 
-  function getTotalVP () public view returns (uint _vp) {
-    _vp = 300 * 10 ** 18 - total_used_vp;
+  function getTotalVP () public view returns (uint) {
+    return IWPVP(vp).totalWP();
   }
 
-  function getVP (address _voter) public view returns (uint _vp) {
-    _vp = IERC20(token).balanceOf(_voter) - used_vp[_voter];
+  function getVP (address _voter) public view returns (uint) {
+    return IWPVP(vp).paybacks(_voter);
   }
 
   function vote (address _voter, uint _amount) external {

@@ -89,12 +89,13 @@ describe("Unit", () => {
 
 describe("Integration", () => {
   let col,
+    wpvp,
     token,
     agt,
     wp,
     gov,
     withdraw,
-    pool,
+    vp,
     jpyc,
     market,
     events,
@@ -113,7 +114,7 @@ describe("Integration", () => {
   const checkEqualty = async pairs => {
     let total = B(from18(await viewer.getAvailable(0)))
     for (const v of pairs) {
-      const pair = await viewer.getPair(p, v)
+      const pair = await viewer.getPair(0, v)
       const pToken = new Contract(pair, _IERC20.abi, owner)
       total = total
         .add(from18(await pToken.totalSupply()))
@@ -133,6 +134,9 @@ describe("Integration", () => {
 
     // JPYC
     jpyc = await deploy("Token", "JPYC", "JPYC", to18(100000000))
+
+    // WPVP
+    wpvp = await deploy("WPVP")
 
     // Storage
     str = await deploy("Storage")
@@ -238,10 +242,16 @@ describe("Integration", () => {
     await col.addAgent(a(dex))
     await events.addEmitter(a(dex))
 
-    // Pool
-    pool = await deploy("Pool", a(jpyc), a(addr))
-
-    await gov.addPool(a(pool), "JPYC")
+    // VP
+    vp = await deploy("DOGVP", a(wpvp), a(addr))
+    await wpvp.bulkRecordWP(
+      [a(p1), a(p2), a(p3)],
+      [a(p1), a(p2), a(p3)],
+      [to18("100"), to18("100"), to18("100")],
+      [to18("100"), to18("100"), to18("100")]
+    )
+    await wpvp.setTotalWP(to18("1000"))
+    await gov.addPool(a(vp), "JPYC")
     p = await viewer.getPool("JPYC")
 
     // Create Topics
@@ -265,28 +275,28 @@ describe("Integration", () => {
 
   it("should go through the whole flow", async () => {
     // check setup
-    expect(await pool.getVP(a(p1))).to.equal(to18(100))
-    expect(await pool.getVP(a(p2))).to.equal(to18(100))
-    expect(await pool.getVP(a(p3))).to.equal(to18(100))
+    expect(await vp.getVP(a(p1))).to.equal(to18(100))
+    expect(await vp.getVP(a(p2))).to.equal(to18(100))
+    expect(await vp.getVP(a(p3))).to.equal(to18(100))
 
     // updateItem topics
     await market.connect(p3).updateItem(a(nft), 2, [2])
 
     // set poll
     await jpyc.approve(a(gov), UINT_MAX)
-    await gov.setPoll(p, to18(1000), 30, [])
+    await gov.setPoll(p, a(jpyc), to18(1000), 30, [])
 
     // vote for topic
     await gov.connect(p1).vote(0, to18(10), 2)
 
     // get pair token
-    const pair2 = await viewer.getPair(p, 2)
+    const pair2 = await viewer.getPair(0, 2)
     const pToken2 = new Contract(pair2, _IERC20.abi, owner)
     expect(await pToken2.balanceOf(a(p1))).to.equal(to18(10))
 
     // burn for item
     await pToken2.connect(p1).approve(a(market), UINT_MAX)
-    await market.connect(p1).burnFor(a(nft), 2, p, 2, to18(5))
+    await market.connect(p1).burnFor(a(nft), 2, pair2, 2, to18(5))
     expect(await jpyc.balanceOf(a(p1))).to.equal(to18(101))
     expect(await jpyc.balanceOf(a(p3))).to.equal(to18(104))
     expect(await jpyc.balanceOf(a(withdraw))).to.equal(to18(995))
@@ -369,52 +379,52 @@ describe("Integration", () => {
     await fct.createTopic("TOPIC3", "topic3")
   })
 
-  it("should add/remove fund to poll", async () => {
+  it.only("should add/remove fund to poll", async () => {
     // set poll
     await jpyc.approve(a(gov), UINT_MAX)
-    await gov.setPoll(p, to18(10), 30, [])
-    let poll = await viewer.getPoll(0)
+    await gov.setPoll(p, a(jpyc), to18(10), 30, [])
+    let poll = await viewer.polls(0)
     expect(from18(B(poll.amount).sub(poll.minted).toFixed()) * 1).to.equal(10)
 
     // add fund
     await jpyc.approve(a(withdraw), UINT_MAX)
     await withdraw.addFund(0, to18(10))
-    poll = await viewer.getPoll(0)
+    poll = await viewer.polls(0)
     expect(from18(B(poll.amount).sub(poll.minted).toFixed()) * 1).to.equal(20)
     expect(from18(await jpyc.balanceOf(a(withdraw))) * 1).to.equal(20)
     await gov.connect(p1).vote(0, to18(30), 2)
-    poll = await viewer.getPoll(0)
-    expect(from18(B(poll.amount).sub(poll.minted).toFixed()) * 1).to.equal(18)
+    poll = await viewer.polls(0)
+    expect(from18(B(poll.amount).sub(poll.minted).toFixed()) * 1).to.equal(19.4)
 
     // remove fund
     await isErr(withdraw.removeFund(0, to18(20)))
-    await isErr(withdraw.connect(p2).removeFund(0, to18(18)))
-    await withdraw.removeFund(0, to18(18))
+    await isErr(withdraw.connect(p2).removeFund(0, to18(19.4)))
+    await withdraw.removeFund(0, to18(19.4))
     await isErr(gov.connect(p1).vote(0, to18(30), 2))
-    poll = await viewer.getPoll(0)
+    poll = await viewer.polls(0)
     expect(from18(B(poll.amount).sub(poll.minted).toFixed()) * 1).to.equal(0)
   })
 
-  it.only("should hold correct remaining fund", async () => {
+  it("should hold correct remaining fund", async () => {
     // set poll
     await jpyc.approve(a(gov), UINT_MAX)
-    await gov.setPoll(p, to18(1000), 30, [])
+    await gov.setPoll(p, a(jpyc), to18(1000), 30, [])
 
     // vote for topic
     await gov.connect(p1).vote(0, to18(100), 2)
-
+    return
     // update item topic
     await market.connect(p3).updateItem(a(nft), 2, [2])
 
     // get pair token 2
-    const pair2 = await viewer.getPair(p, 2)
+    const pair2 = await viewer.getPair(0, 2)
     const pToken2 = new Contract(pair2, _IERC20.abi, owner)
 
     await checkEqualty([2])
 
     // burn for item
     await pToken2.connect(p1).approve(a(market), UINT_MAX)
-    await market.connect(p1).burnFor(a(nft), 2, p, 2, to18(5))
+    await market.connect(p1).burnFor(a(nft), 2, pair2, 2, to18(5))
     expect(await jpyc.balanceOf(a(p1))).to.equal(to18(101))
     expect(await jpyc.balanceOf(a(p3))).to.equal(to18(104))
     expect(await jpyc.balanceOf(a(withdraw))).to.equal(to18(995))
@@ -454,11 +464,13 @@ describe("Integration", () => {
 
     // burn for item
     await pToken2.connect(p1).approve(a(market), UINT_MAX)
-    await market.connect(p1).burnFor(a(nft), 2, p, 2, to18(5))
+    await market.connect(p1).burnFor(a(nft), 2, pair2, 2, to18(5))
     expect(await jpyc.balanceOf(a(p1))).to.equal(to18(102))
     expect(await jpyc.balanceOf(a(p3))).to.equal(to18(108))
     expect(await jpyc.balanceOf(a(withdraw))).to.equal(to18(990))
 
     await checkEqualty([1, 2])
   })
+
+  it("should reflext VP", async () => {})
 })

@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../lib/NFT.sol";
-import "../interfaces/IPool.sol";
 import "../interfaces/IWithdraw.sol";
 import "../interfaces/ICollector.sol";
 import "./UseConfig.sol";
@@ -48,7 +47,7 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
     addItem(nft, id, _topics);
   }
   
-  function burnFor (address _nft, uint _id, address _pool, uint _topic, uint _amount) public {
+  function burnFor (address _nft, uint _id, address _pair, uint _topic, uint _amount) public {
     require(v().items(_nft, _id), "item not registered");
     require(msgSender() != IERC721(_nft).ownerOf(_id), "item owner cannot vote");
     ICollector(a().collector()).collect(msgSender());
@@ -62,15 +61,14 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
       }
     }
     require(existsTopic, "item does not have the topic");
-    address pair = v().getPair(_pool, _topic);
     address item_owner = NFT(_nft).ownerOf(_id);
     uint _reward = _amount * v().creator_percentage() / 10000;
-    ERC20Burnable(pair).burnFrom(msgSender(),_amount);
-    IWithdraw(a().withdraw()).withdraw(item_owner, msgSender(), _amount, IPool(_pool).token());
-    c().setTotalKudos(pair, v().total_kudos(pair) + _amount);
-    addShare(pair, _reward, item_owner);
-    addShare(pair, _amount - _reward, msgSender());
-    e().burn(_nft, _id, msgSender(), item_owner, pair, _reward, _amount - _reward);
+    ERC20Burnable(_pair).burnFrom(msgSender(),_amount);
+    IWithdraw(a().withdraw()).withdraw(item_owner, msgSender(), _amount, v().pair_tokens(_pair));
+    c().setTotalKudos(_pair, v().total_kudos(_pair) + _amount);
+    addShare(_pair, _reward, item_owner);
+    addShare(_pair, _amount - _reward, msgSender());
+    e().burn(_nft, _id, msgSender(), item_owner, _pair, _reward, _amount - _reward);
   }
   
   function addShare(address _pair, uint _amount, address _holder) internal {

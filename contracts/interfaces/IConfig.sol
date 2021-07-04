@@ -61,7 +61,7 @@ interface IConfig {
 
   function setFactory(address _addr) external;
   
-  function setPolls(address _pool, uint _amount, uint _block, uint[] memory _topics) external returns (uint);
+  function setPolls(address _pool, address _token, uint _amount, uint _block, uint[] memory _topics) external returns (uint);
   
   function setPollAmount(uint _poll, uint _uint) external;
   

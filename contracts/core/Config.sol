@@ -4,7 +4,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/ITopic.sol";
 import "../interfaces/IStorage.sol";
 import "../interfaces/ISet.sol";
-import "../interfaces/IPool.sol";
+import "../interfaces/IVP.sol";
 import "../interfaces/IUtils.sol";
 import "../interfaces/IViewer.sol";
 import "../interfaces/IAddresses.sol";
@@ -144,6 +144,8 @@ contract Config is Ownable {
   function setPairs(address _addr1, uint _uint, address _addr2) external {
     IViewer(IAddresses(addr).viewer()).onlyFactoryOrGovernance(msg.sender);
     _setAddress(abi.encode("pairs", _addr1, _uint), _addr2);
+    _setAddress(abi.encode("pair_tokens", _addr2), _addr1);
+    _setUint(abi.encode("pair_topics", _addr2), _uint);
   }
   
   function setTotalShareSqrt(address _addr, uint _uint) external {
@@ -181,12 +183,13 @@ contract Config is Ownable {
     _setUint(abi.encode("share_sqrt",_addr1, _addr2), _uint);
   }
 
-  function setPolls(address _pool, uint _amount, uint _block, uint[] memory _topics) external returns (uint _count) {
+  function setPolls(address _pool, address _token, uint _amount, uint _block, uint[] memory _topics) external returns (uint _count) {
     IViewer(IAddresses(addr).viewer()).onlyGovernance(msg.sender);
     _count = IViewer(IAddresses(addr).viewer()).poll_count();
     _setUint(abi.encode("polls", _count, "phase"), 1);
     _setUint(abi.encode("polls", _count, "id"), _count);
     _setAddress(abi.encode("polls", _count, "pool"), _pool);
+    _setAddress(abi.encode("polls", _count, "token"), _token);
     _setUint(abi.encode("polls", _count, "amount"), _amount);
     _setUint(abi.encode("polls", _count, "block_until"), _block);
     _setUintArray(abi.encode("polls", _count, "topics"), _topics);

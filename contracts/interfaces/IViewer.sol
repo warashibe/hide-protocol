@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 struct Poll {
   uint id;
   address pool;
+  address token;
   uint block_until;
   uint amount;
   uint minted;
@@ -78,12 +79,14 @@ interface IViewer {
   function topic_indexes(string memory _str) external view returns(uint);
 
   function pairs(address _addr, uint _uint) external view returns(address);
+  
+  function pair_tokens(address _addr) external view returns(address);
+
+  function pair_topics(address _addr) external view returns(uint);
 
   function kudos(address _addr1, address _addr2) external view returns(uint);
   
   function total_kudos(address _addr) external view returns(uint);
-  
-  //function total_share(address _addr) external view returns(uint);
   
   function total_share_sqrt(address _addr) external view returns(uint);
   
@@ -110,13 +113,11 @@ interface IViewer {
   
   function getMintable (uint _poll, uint _amount, uint _topic) external view returns (uint mintable, uint converted);
   
-  function getPoll(uint _poll) external view returns (Poll memory);
-  
   function getVote(uint _uint, address _addr) external view returns (uint);
   
   function getTopicVote(uint _uint1, address _addr, uint _uint2) external view returns (uint);
   
-  function getPair(address _pool, uint _topic) external view returns (address);
+  function getPair(uint _poll, uint _topic) external view returns (address);
   
   function getPool (string memory _name) external view returns (address);
   
