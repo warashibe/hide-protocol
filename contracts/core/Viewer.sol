@@ -6,6 +6,7 @@ import "../interfaces/ISet.sol";
 import "../interfaces/IVP.sol";
 import "../interfaces/IUtils.sol";
 import "../interfaces/IAddresses.sol";
+import "../interfaces/IModifiers.sol";
 
 struct Poll {
   uint id;
@@ -51,9 +52,9 @@ contract Viewer {
   function _getUintSet(bytes memory _key) internal view returns(uint[] memory){
     return ISet(IAddresses(addr).set()).getUintSet(keccak256(_key));
   }
-  
-  function _getUintSetAt(bytes memory _key, uint _i) internal view returns(uint){
-    return ISet(IAddresses(addr).set()).getUintSetAt(keccak256(_key), _i);
+
+  function _getAddressSet(bytes memory _key) internal view returns(address[] memory){
+    return ISet(IAddresses(addr).set()).getAddressSet(keccak256(_key));
   }
   
   function _getBool(bytes memory _key) internal view returns(bool){
@@ -64,32 +65,6 @@ contract Viewer {
     return IStorage(IAddresses(addr).store()).getUintArray(keccak256(_key));
   }
   
-  /* get contract addresses */
-  
-  function governance() public view returns(address) {
-    return _getAddress(abi.encode("governance"));
-  }
-  
-  function market() public view returns(address) {
-    return _getAddress(abi.encode("market"));
-  }
-  
-  function collector() public view returns(address) {
-    return _getAddress(abi.encode("collector"));
-  }
-  
-  function factory() public view returns(address) {
-    return _getAddress(abi.encode("factory"));
-  }
-  
-  function dex() public view returns(address) {
-    return _getAddress(abi.encode("dex"));
-  }
-  
-  function topics() public view returns(address) {
-    return _getAddress(abi.encode("topics"));
-  }
-
   /* protocol parameters */
 
   function totalSupply(address pair) public view returns (uint256 _supply) {
@@ -102,6 +77,10 @@ contract Viewer {
     _balance =  share_sqrt(pair, account) > minus ? share_sqrt(pair, account) - minus : 0;
   }
 
+  function burn_limits(address _addr) public view returns(uint) {
+    return _getUint(abi.encode("burn_limits", _addr));
+  }
+  
   function lastBlock(address _addr) public view returns(uint) {
     return _getUint(abi.encode("lastBlock", _addr));
   }
@@ -112,6 +91,18 @@ contract Viewer {
   
   function lastBlocks(address _addr, address _addr2) public view returns(uint) {
     return _getUint(abi.encode("lastBlocks", _addr, _addr2));
+  }
+
+  function user_pairs(address _addr) public view returns(address[] memory) {
+    return _getAddressSet(abi.encode("user_pairs", _addr));
+  }
+
+  function topic_pairs(uint _uint) public view returns(address[] memory) {
+    return _getAddressSet(abi.encode("topic_pairs", _uint));
+  }
+  
+  function item_pairs(address _addr, uint _uint) public view returns(address[] memory) {
+    return _getAddressSet(abi.encode("item_pairs", _addr, _uint));
   }
   
   function poll_topics(uint _uint) public view returns(uint[] memory) {
@@ -292,55 +283,6 @@ contract Viewer {
   
   function getConvertible (address _pair) public view returns (uint _amount){
     _amount = ITopic(_pair).totalInterests() + claimable(_pair) - claimed(_pair);    
-  }
-
-  
-  /* exists */
-  function existsPool (address _pool) external view {
-    require(bytes(pool_names(_pool)).length != 0, "pool does not exist");
-  }
-  
-  function existsPoll (uint _poll) external view {
-    require(polls(_poll).block_until != 0, "poll does not exist");
-  }
-  
-  function existsTopic (uint _topic) external view {
-    require(bytes(topic_names(_topic)).length != 0, "topic does not exist");
-  }
-
-  
-  /* modifiers */
-  
-  function onlyDEXOrMarket(address _sender) public view {
-    require(_sender == IAddresses(addr).dex() || _sender == IAddresses(addr).market(), "only DEX or market can execute");
-  }
-
-  function onlyGovernanceOrDEX(address _sender) public view {
-    require(_sender == IAddresses(addr).governance() || _sender == IAddresses(addr).dex(), "only governance or DEX can execute");
-  }
-  
-  function onlyGovernanceOrWithdraw(address _sender) public view {
-    require(_sender == IAddresses(addr).governance() || _sender == IAddresses(addr).withdraw(), "only governance or withdraw can execute");
-  }
-
-  function onlyGovernance (address _sender) public view {
-    require(_sender == IAddresses(addr).governance(), "only governance can execute");
-  }
-
-  function onlyFactory (address _sender) public view {
-    require(_sender == IAddresses(addr).factory(), "only factory can execute");
-  }
-
-  function onlyFactoryOrGovernance (address _sender) public view {
-    require(_sender == IAddresses(addr).factory() || _sender == IAddresses(addr).governance(), "only factory or governance can execute");
-  }
-
-  function onlyMarket (address _sender) public view {
-    require(_sender == IAddresses(addr).market(), "only market can execute");
-  }
-
-  function onlyDEX (address _sender) public view {
-    require(_sender == IAddresses(addr).dex(), "only DEX can execute");
   }
   
 }

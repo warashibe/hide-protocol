@@ -18,7 +18,7 @@ contract Factory is Ownable, UseConfig, EIP712MetaTransaction {
   }
   
   function issue (string memory _name, string memory _sym, address _addr) external returns (address _token){
-    v().onlyGovernance(msgSender());
+    mod().onlyGovernance(msgSender());
     return _issue(_name, _sym, _addr);
   }
 
@@ -34,7 +34,7 @@ contract Factory is Ownable, UseConfig, EIP712MetaTransaction {
   
   function _createTopic (string memory _name, string memory _id) internal returns (uint _index) {
     require(v().topic_indexes(_name) == 0, "topic name is taken");
-    _index = INFT(v().topics()).mint(msgSender(), _id);
+    _index = INFT(a().topics()).mint(msgSender(), _id);
     c().setTopicNames(_index, _name);
     c().setTopicIndexes(_name, _index);
   }

@@ -12,14 +12,14 @@ contract Withdraw is Ownable, UseConfig, EIP712MetaTransaction {
   constructor(address _addr) UseConfig(_addr) EIP712MetaTransaction("Withdraw", "1") {}
 
   function withdraw(address _to, address _voter, uint _amount, address _token) external {
-    v().onlyMarket(msg.sender);
+    mod().onlyMarket(msg.sender);
     uint _reward = _amount * 80 / 100;
     IERC20(_token).transfer(_to, _reward);
     IERC20(_token).transfer(_voter, _amount - _reward);
   }
   
   function addFund (uint _poll, uint _amount) public {
-    v().existsPoll(_poll);
+    mod().existsPoll(_poll);
     Poll memory p = v().polls(_poll);
     require(p.phase == 1, "poll already closed");
     IERC20(p.token).transferFrom(msgSender(), address(this), _amount);
@@ -27,7 +27,7 @@ contract Withdraw is Ownable, UseConfig, EIP712MetaTransaction {
   }
 
   function removeFund (uint _poll, uint _amount) public {
-    v().existsPoll(_poll);
+    mod().existsPoll(_poll);
     Poll memory p = v().polls(_poll);
     require(p.phase == 1, "poll already closed");
     require(IVP(p.pool).owner() == msgSender(), "only pool owner can execute");

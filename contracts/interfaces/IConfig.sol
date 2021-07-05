@@ -3,31 +3,13 @@ pragma solidity ^0.8.0;
 
 interface IConfig {
 
-  function setLastBlock(address _addr, uint _uint) external;
-  
-  function setLastSupply(address _addr, uint _uint) external;
-  
-  function setLastBlocks(address _addr, address _addr2, uint _uint) external;
-
-  function setDilutionRate(uint _numerator, uint _denominator) external;
-  
   function setPollTopicVotes(uint _uint1, uint _uint2, uint _uint3) external;
   
+  function pushTopicPairs(uint _uint, address _addr) external;
+  
+  function pushUserPairs(address _addr1, address _addr2) external;
+  
   function pushPollTopics(uint _uint1, uint _uint2) external;
-  
-  function setItemTopics(address _addr, uint _uint, uint[] memory _uint_arr) external;
-
-  function deleteItemTopics(address _addr, uint _uint) external;
-  
-  function setItems(address _addr, uint _uint, bool _bool) external;
-  
-  function setDEX(address _addr) external;
-  
-  function setCreatorPercentage(uint _uint) external;
-
-  function setGovernance(address _addr) external;
-  
-  function setTopics(address _addr) external;
   
   function setFreeTopic(uint _uint) external;
 
@@ -41,25 +23,7 @@ interface IConfig {
   
   function setPairs(address _addr1, uint _uint, address _addr2) external;
 
-  function setKudos(address _addr, address _addr2, uint _uint) external;
-  
-  function setTotalKudos(address _addr, uint _uint) external;
-    
-  function setTotalShareSqrt(address _addr, uint _uint) external;
-
   function setClaimable(address _addr, uint _uint) external;
-  
-  function setClaimed(address _addr, uint _uint) external;
-
-  function setShare(address _addr1, address _addr2, uint _uint) external;
-  
-  function setShareSqrt(address _addr1, address _addr2, uint _uint) external;
-
-  function setMarket(address _addr) external;
-
-  function setCollector(address _addr) external;
-
-  function setFactory(address _addr) external;
   
   function setPolls(address _pool, address _token, uint _amount, uint _block, uint[] memory _topics) external returns (uint);
   
@@ -83,5 +47,4 @@ interface IConfig {
   
   function setMinted(uint _uint1, address _addr, uint _uint2) external;
   
-  function setItemIndexes(string memory _str, address _addr, uint _uint) external;
 }

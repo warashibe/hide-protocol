@@ -24,15 +24,15 @@ contract DEX is Ownable, UseConfig, EIP712MetaTransaction {
     ICollector(a().collector()).collect(msgSender());
     uint mintable = v().getConvertibleAmount(_pair, diff, msgSender());
     ITopic(_pair).mint(msgSender(), mintable);
-    c().setTotalShareSqrt(_pair, _totalSupply);
-    c().setShareSqrt(_pair, msgSender(), _new_balance);
-    c().setLastBlocks(_pair, msgSender(), block.number);
-    c().setLastBlock(_pair, block.number);
-    c().setLastSupply(_pair, _lastSupply);
+    m().setTotalShareSqrt(_pair, _totalSupply);
+    m().setShareSqrt(_pair, msgSender(), _new_balance);
+    m().setLastBlocks(_pair, msgSender(), block.number);
+    m().setLastBlock(_pair, block.number);
+    m().setLastSupply(_pair, _lastSupply);
     if(v().claimable(_pair) >= mintable){
       c().setClaimable(_pair, v().claimable(_pair) - mintable);
     }else{
-      c().setClaimed(_pair, ITopic(_pair).totalInterests() - (mintable - v().claimable(_pair)));
+      m().setClaimed(_pair, ITopic(_pair).totalInterests() - (mintable - v().claimable(_pair)));
       c().setClaimable(_pair, 0);
     }
     e().convert(_pair, _amount, msgSender(), mintable);

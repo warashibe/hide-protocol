@@ -20,22 +20,22 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
     require(msgSender() == IERC721(_nft).ownerOf(_id), "item must be registered by owner");
     require(v().items(_nft, _id) == true, "item not registered");
     ICollector(a().collector()).collect(msgSender());
-    c().setItemTopics(_nft, _id, _topics);
+    m().setItemTopics(_nft, _id, _topics);
   }
   
   function addItem (address _nft, uint _id, uint[] memory _topics) public {
     require(msgSender() == IERC721(_nft).ownerOf(_id), "item must be registered by owner");
     require(v().items(_nft, _id) == false, "item already registered");
-    c().setItemTopics(_nft, _id, _topics);
-    c().setItems(_nft, _id, true);
+    m().setItemTopics(_nft, _id, _topics);
+    m().setItems(_nft, _id, true);
   }
   
   function removeItem (address _nft, uint _id) public {
     require(msgSender() == IERC721(_nft).ownerOf(_id), "item must be registered by owner");
     require(v().items(_nft, _id) == true, "item not registered");
     ICollector(a().collector()).collect(msgSender());
-    c().setItems(_nft, _id, false);
-    c().deleteItemTopics(_nft, _id);
+    m().setItems(_nft, _id, false);
+    m().deleteItemTopics(_nft, _id);
   }
   
   function createItem (string memory _str, uint[] memory _topics) public {
@@ -43,14 +43,15 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
     require(_id == 0, "item already registered");
     ICollector(a().collector()).collect(msgSender());
     uint id = NFT(nft).mint(msgSender(), _str);
-    c().setItemIndexes(_str, nft, id);
+    m().setItemIndexes(_str, nft, id);
     addItem(nft, id, _topics);
   }
   
   function burnFor (address _nft, uint _id, address _pair, uint _topic, uint _amount) public {
     require(v().items(_nft, _id), "item not registered");
     require(msgSender() != IERC721(_nft).ownerOf(_id), "item owner cannot vote");
-    ICollector(a().collector()).collect(msgSender());
+    uint limit = v().burn_limits(v().pair_tokens(_pair));
+    require(limit == 0 || _amount <= limit, "amount is larger than limit");
     bool existsTopic = v().free_topic() == _topic ? true : false;
     if(!existsTopic){
       for(uint i = 0; i < v().item_topics(_nft, _id).length; i++){
@@ -61,13 +62,17 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
       }
     }
     require(existsTopic, "item does not have the topic");
+    ICollector(a().collector()).collect(msgSender());
     address item_owner = NFT(_nft).ownerOf(_id);
     uint _reward = _amount * v().creator_percentage() / 10000;
     ERC20Burnable(_pair).burnFrom(msgSender(),_amount);
     IWithdraw(a().withdraw()).withdraw(item_owner, msgSender(), _amount, v().pair_tokens(_pair));
-    c().setTotalKudos(_pair, v().total_kudos(_pair) + _amount);
+    m().setTotalKudos(_pair, v().total_kudos(_pair) + _amount);
     addShare(_pair, _reward, item_owner);
     addShare(_pair, _amount - _reward, msgSender());
+    c().pushUserPairs(item_owner, _pair);
+    c().pushUserPairs(msgSender(), _pair);
+    m().pushItemPairs(_nft, _id, _pair);
     e().burn(_nft, _id, msgSender(), item_owner, _pair, _reward, _amount - _reward);
   }
   
@@ -79,11 +84,11 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
     uint diff = _new_balance - _last_balance;
     uint _totalSupply = v().totalSupply(_pair) + _balance + diff - _last_balance;
     uint _lastSupply = _supply + diff;
-    c().setTotalShareSqrt(_pair, _totalSupply);
-    c().setShareSqrt(_pair, _holder, _new_balance);
-    c().setLastBlocks(_pair, _holder, block.number);
-    c().setLastBlock(_pair, block.number);
-    c().setLastSupply(_pair, _lastSupply);
+    m().setTotalShareSqrt(_pair, _totalSupply);
+    m().setShareSqrt(_pair, _holder, _new_balance);
+    m().setLastBlocks(_pair, _holder, block.number);
+    m().setLastBlock(_pair, block.number);
+    m().setLastSupply(_pair, _lastSupply);
   }
   
 }

@@ -16,22 +16,10 @@ struct Poll {
 
 interface IViewer {
 
-  /* get contract addresses */
-  
-  function governance() external view returns(address);
-  
-  function market() external view returns(address);
-  
-  function collector() external view returns(address);
-  
-  function factory() external view returns(address);
-  
-  function dex() external view returns(address);
-  
-  function topics() external view returns(address);
-
   /* protocol parameters */
 
+  function burn_limits(address _addr) external view returns (uint);
+  
   function totalSupply(address pair) external view returns (uint);
   
   function balanceOf(address pair, address account) external view returns (uint);
@@ -82,6 +70,12 @@ interface IViewer {
   
   function pair_tokens(address _addr) external view returns(address);
 
+  function user_pairs(address _addr) external view returns(address[] memory);
+
+  function topic_pairs(uint _uint) external view returns(address[] memory);
+
+  function item_pairs(address _addr, uint _uint) external view returns(address[] memory);
+
   function pair_topics(address _addr) external view returns(uint);
 
   function kudos(address _addr1, address _addr2) external view returns(uint);
@@ -123,29 +117,4 @@ interface IViewer {
   
   function getConvertible (address _pair) external view returns (uint);
 
-  
-  /* exists */
-  function existsPool (address _pool) external view;
-  
-  function existsPoll (uint _poll) external view;
-  
-  function existsTopic (uint _topic) external view;
-
-  /* modifiers */
-  function onlyGovernanceOrDEX(address _sender) external view;
-
-  function onlyGovernanceOrWithdraw(address _sender) external view;
-  
-  function onlyGovernance(address _sender) external view;
-  
-  function onlyFactory(address _sender) external view;
-  
-  function onlyMarket(address _sender) external view;
-  
-  function onlyDEX(address _sender) external view;
-  
-  function onlyDEXOrMarket(address _sender) external view;
-  
-  function onlyFactoryOrGovernance(address _sender) external view;
-  
 }

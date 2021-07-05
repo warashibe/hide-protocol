@@ -7,7 +7,7 @@ import "../core/UseConfig.sol";
 import "../dev/IWPVP.sol";
 
 contract DOGVP is Ownable, UseConfig {
-  mapping(address => uint) used_vp;
+  mapping(address => uint) public used_vp;
   uint public total_used_vp;
   address public vp;
   
@@ -24,7 +24,7 @@ contract DOGVP is Ownable, UseConfig {
   }
 
   function vote (address _voter, uint _amount) external {
-    v().onlyGovernance(msg.sender);
+    mod().onlyGovernance(msg.sender);
     require(getVP(_voter) >= _amount, "VP not enough");
     used_vp[_voter] += _amount;
     total_used_vp += _amount;

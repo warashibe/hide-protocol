@@ -102,14 +102,17 @@ describe("Integration", () => {
     nft,
     p,
     cfg,
+    mcfg,
     fct,
     dex,
     topics,
     str,
+    aggr,
     utils,
     viewer,
     addr,
-    set
+    set,
+    mod
   let ac, owner, collector, p1, p2, p3
   const checkEqualty = async pairs => {
     let total = B(from18(await viewer.getAvailable(0)))
@@ -161,14 +164,28 @@ describe("Integration", () => {
     viewer = await deploy("Viewer", a(addr))
     await addr.setViewer(a(viewer))
 
+    // Mod
+    mod = await deploy("Modifiers", a(addr))
+    await addr.setModifiers(a(mod))
+
+    // Aggr
+    aggr = await deploy("Aggregator", a(addr))
+
     // Config
     cfg = await deploy("Config", a(addr))
     await addr.setConfig(a(cfg))
     await str.addEditor(a(cfg))
     await set.addEditor(a(cfg))
-    await cfg.setCreatorPercentage(8000)
     await cfg.setFreigeldRate(63419584, 1000000000000000)
-    await cfg.setDilutionRate(63419584, 1000000000000000)
+
+    // Config Market
+    mcfg = await deploy("ConfigMarket", a(addr))
+    await addr.setConfigMarket(a(mcfg))
+    await str.addEditor(a(mcfg))
+    await set.addEditor(a(mcfg))
+    await mcfg.setCreatorPercentage(8000)
+    await mcfg.setBurnLimits(a(jpyc), to18(1000))
+    await mcfg.setDilutionRate(63419584, 1000000000000000)
 
     // Collector
     col = await deploy(
@@ -472,7 +489,7 @@ describe("Integration", () => {
     await checkEqualty([1, 2])
   })
 
-  it.only("should reflext VP", async () => {
+  it("should reflext VP", async () => {
     // set poll
     await jpyc.approve(a(gov), UINT_MAX)
     await gov.setPoll(p, a(jpyc), to18(1000), 30, [])
@@ -483,5 +500,65 @@ describe("Integration", () => {
     await gov.connect(p1).vote(0, to18(10), 2)
     expect(from18(await vp.getVP(a(p1))) * 1).to.equal(90)
     expect(from18(await vp.getTotalVP()) * 1).to.equal(990)
+  })
+
+  it("should record user/item pairs", async () => {
+    // set poll
+    await jpyc.approve(a(gov), UINT_MAX)
+    await gov.setPoll(p, a(jpyc), to18(1000), 30, [])
+
+    // vote for topic
+    await gov.connect(p1).vote(0, to18(10), 2)
+    await gov.connect(p1).vote(0, to18(10), 1)
+    await gov.connect(p1).vote(0, to18(10), 3)
+
+    // update item topic
+    await market.connect(p3).updateItem(a(nft), 2, [1, 2, 3])
+
+    // get pair token 2
+    const pair2 = await viewer.getPair(0, 2)
+    const pair1 = await viewer.getPair(0, 1)
+    const pair3 = await viewer.getPair(0, 3)
+
+    // burn for item
+    const pToken2 = new Contract(pair2, _IERC20.abi, owner)
+    const pToken3 = new Contract(pair3, _IERC20.abi, owner)
+    await pToken2.connect(p1).approve(a(market), UINT_MAX)
+    await pToken3.connect(p1).approve(a(market), UINT_MAX)
+    await market.connect(p1).burnFor(a(nft), 2, pair2, 2, to18(5))
+    await market.connect(p1).burnFor(a(nft), 2, pair3, 2, to18(5))
+    expect(await viewer.user_pairs(a(p1))).to.eql([pair2, pair1, pair3])
+    expect(await viewer.item_pairs(a(nft), 2)).to.eql([pair2, pair3])
+  })
+
+  it.only("should aggregate", async () => {
+    // set poll
+    await jpyc.approve(a(gov), UINT_MAX)
+    await gov.setPoll(p, a(jpyc), to18(1000), 30, [])
+
+    // vote for topic
+    await gov.connect(p1).vote(0, to18(10), 2)
+    await gov.connect(p1).vote(0, to18(10), 1)
+    await gov.connect(p1).vote(0, to18(10), 3)
+
+    // update item topic
+    await market.connect(p3).updateItem(a(nft), 2, [1, 2, 3])
+
+    // get pair token 2
+    const pair2 = await viewer.getPair(0, 2)
+    const pair1 = await viewer.getPair(0, 1)
+    const pair3 = await viewer.getPair(0, 3)
+
+    // burn for item
+    const pToken2 = new Contract(pair2, _IERC20.abi, owner)
+    const pToken3 = new Contract(pair3, _IERC20.abi, owner)
+    await pToken2.connect(p1).approve(a(market), UINT_MAX)
+    await pToken3.connect(p1).approve(a(market), UINT_MAX)
+    await market.connect(p1).burnFor(a(nft), 2, pair2, 2, to18(5))
+    await market.connect(p1).burnFor(a(nft), 2, pair3, 2, to18(5))
+    expect((await aggr.infoTopic("TOPIC1")).topic.toString() * 1).to.equal(2)
+    expect(from18((await aggr.infoVote(0, to18(5), 2, a(p1))).balances[1]) * 1)
+      .to.be.gt(7)
+      .lt(8)
   })
 })

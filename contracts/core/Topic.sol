@@ -12,12 +12,12 @@ contract Topic is Ownable, ERC20Permit, UseConfig {
   }
   
   function setRate (uint256 _numerator, uint256 _denominator) external {
-    v().onlyGovernance(msg.sender);
+    mod().onlyGovernance(msg.sender);
     _setRate(_numerator, _denominator);
   }
   
   function mint (address _to, uint _amount) external {
-    v().onlyGovernanceOrDEX(msg.sender);
+    mod().onlyGovernanceOrDEX(msg.sender);
     _mint(_to, _amount);
   }
   

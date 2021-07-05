@@ -24,7 +24,7 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
   }
   
   function updatePollTopics(uint _poll, uint[] memory _topics) public {
-    v().existsPoll(_poll);
+    mod().existsPoll(_poll);
     Poll memory p = v().polls(_poll);
     require(IVP(p.pool).owner() == msgSender(), "only pool owner can execute");
     c().setPollTopics(_poll, _topics);
@@ -32,7 +32,7 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
   }
   
   function setPoll (address _pool, address _token, uint _amount, uint _blocks, uint[] memory _topics) public {
-    v().existsPool(_pool);
+    mod().existsPool(_pool);
     require(IVP(_pool).owner() == msgSender(), "only pool owner can execute");
     IERC20Metadata(_token).transferFrom(msgSender(), a().withdraw(), _amount);
     uint _poll = c().setPolls(_pool, _token, _amount, block.number + _blocks, _topics);
@@ -46,7 +46,7 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
   }
   
   function closePoll (uint _poll) public {
-    v().existsPoll(_poll);
+    mod().existsPoll(_poll);
     Poll memory p = v().polls(_poll);
     require(IVP(p.pool).owner() == msgSender(), "only pool owner can execute");
     require(p.phase == 1, "poll already closed");
@@ -79,6 +79,8 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
     address _pair = v().getPair(_poll, _topic);
     ITopic(_pair).mint(msgSender(), mintable);
     c().setClaimable(_pair, v().claimable(_pair) + (_converted_amount - mintable));
+    c().pushUserPairs(msgSender(), _pair);
+    c().pushTopicPairs(_topic, _pair);
     e().vote(_poll, _topic, _amount, msgSender(), _pair, mintable, _converted_amount - mintable);
   }
   
@@ -90,8 +92,8 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
   }
   
   function vote (uint _poll, uint _amount, uint _topic) public {
-    v().existsPoll(_poll);
-    v().existsTopic(_topic);
+    mod().existsPoll(_poll);
+    mod().existsTopic(_topic);
     Poll memory p = v().polls(_poll);
     require(p.block_until >= block.number, "poll is over");
     require(p.amount - p.minted > 0, "pool is empty");
