@@ -562,5 +562,6 @@ describe("Integration", () => {
     expect(from18((await aggr.infoVote(0, to18(5), 2, a(p1))).balances[1]) * 1)
       .to.be.gt(7)
       .lt(8)
+    expect((await aggr.infoUser(a(p1))).topics[0].toString() * 1).to.equal(2)
   })
 })

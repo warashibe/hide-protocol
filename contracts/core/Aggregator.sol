@@ -36,4 +36,20 @@ contract Aggregator is UseConfig {
     balances[1] = balances[0] + mintable;
   }
   
+  function infoUser(address _user) public view returns(uint[] memory balances, address[] memory pairs, address[] memory tokens, uint[] memory shares, uint[] memory kudos, uint[] memory topics){
+    pairs = v().user_pairs(_user);
+    tokens = new address[](pairs.length);
+    topics = new uint[](pairs.length);
+    balances = new uint[](pairs.length);
+    shares = new uint[](pairs.length);
+    kudos = new uint[](pairs.length);
+    for(uint i = 0; i < pairs.length; i++){
+      address token = v().pair_tokens(pairs[i]);
+      tokens[i] = token;
+      topics[i] = v().pair_topics(pairs[i]);
+      balances[i] = IERC20(token).balanceOf(_user);
+      shares[i] = v().share_sqrt(pairs[i], _user);
+      kudos[i] = v().kudos(pairs[i], _user);
+    }
+  }
 }
