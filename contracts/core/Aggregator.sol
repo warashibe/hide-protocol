@@ -30,8 +30,8 @@ contract Aggregator is UseConfig {
     (uint mintable,  uint converted) = v().getMintable(_poll, _amount, _topic);
     amounts[0] = mintable;
     amounts[1] = converted;
-    budgets[0] = IERC20(p.token).totalSupply() + v().claimable(v().getPair(_poll, _topic));
-    budgets[1] = budgets[0] - converted;
+    budgets[0] = IERC20(v().getPair(_poll, _topic)).totalSupply() + v().claimable(v().getPair(_poll, _topic));
+    budgets[1] = budgets[0] + converted;
     balances[0] = IERC20(v().getPair(_poll, _topic)).balanceOf(_voter);
     balances[1] = balances[0] + mintable;
   }
