@@ -15,7 +15,7 @@ const {
 } = require("./utils")
 
 describe("Unit", () => {
-  let str, cfg, utils, viewer, addr, set
+  let str, cfg, utils, viewer, addr, set, mod
   let ac, p1, p2, p3
   beforeEach(async () => {
     ac = await ethers.getSigners()
@@ -69,6 +69,8 @@ describe("Unit", () => {
       addr.setUtils(a(utils))
       viewer = await deploy("Viewer", a(addr))
       addr.setViewer(a(viewer))
+      mod = await deploy("Modifiers", a(addr))
+      await addr.setModifiers(a(mod))
       cfg = await deploy("Config", a(addr))
       await str.addEditor(a(cfg))
       await set.addEditor(a(cfg))
@@ -531,7 +533,7 @@ describe("Integration", () => {
     expect(await viewer.item_pairs(a(nft), 2)).to.eql([pair2, pair3])
   })
 
-  it.only("should aggregate", async () => {
+  it("should aggregate", async () => {
     // set poll
     await jpyc.approve(a(gov), UINT_MAX)
     await gov.setPoll(p, a(jpyc), to18(1000), 30, [])
