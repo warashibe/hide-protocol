@@ -16,11 +16,11 @@ contract DOGVP is Ownable, UseConfig {
   }
 
   function getTotalVP () public view returns (uint) {
-    return IWPVP(vp).totalWP();
+    return IWPVP(vp).totalWP() - total_used_vp;
   }
 
   function getVP (address _voter) public view returns (uint) {
-    return IWPVP(vp).paybacks(_voter);
+    return IWPVP(vp).paybacks(_voter) - used_vp[_voter];
   }
 
   function vote (address _voter, uint _amount) external {

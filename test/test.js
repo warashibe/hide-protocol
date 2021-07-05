@@ -379,7 +379,7 @@ describe("Integration", () => {
     await fct.createTopic("TOPIC3", "topic3")
   })
 
-  it.only("should add/remove fund to poll", async () => {
+  it("should add/remove fund to poll", async () => {
     // set poll
     await jpyc.approve(a(gov), UINT_MAX)
     await gov.setPoll(p, a(jpyc), to18(10), 30, [])
@@ -412,7 +412,7 @@ describe("Integration", () => {
 
     // vote for topic
     await gov.connect(p1).vote(0, to18(100), 2)
-    return
+
     // update item topic
     await market.connect(p3).updateItem(a(nft), 2, [2])
 
@@ -472,5 +472,16 @@ describe("Integration", () => {
     await checkEqualty([1, 2])
   })
 
-  it("should reflext VP", async () => {})
+  it.only("should reflext VP", async () => {
+    // set poll
+    await jpyc.approve(a(gov), UINT_MAX)
+    await gov.setPoll(p, a(jpyc), to18(1000), 30, [])
+
+    // vote for topic
+    expect(from18(await vp.getVP(a(p1))) * 1).to.equal(100)
+    expect(from18(await vp.getTotalVP()) * 1).to.equal(1000)
+    await gov.connect(p1).vote(0, to18(10), 2)
+    expect(from18(await vp.getVP(a(p1))) * 1).to.equal(90)
+    expect(from18(await vp.getTotalVP()) * 1).to.equal(990)
+  })
 })
