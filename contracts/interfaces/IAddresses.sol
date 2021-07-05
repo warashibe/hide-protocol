@@ -39,6 +39,8 @@ interface IAddresses {
   
   function setGovernance(address _addr) external;
 
+  function setSet(address _addr) external;
+
   function setEvents(address _addr) external;
   
   function setTopics(address _addr) external;
