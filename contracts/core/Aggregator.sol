@@ -5,6 +5,7 @@ import "./UseConfig.sol";
 import "../interfaces/IViewer.sol";
 import "../interfaces/IVP.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../lib/NFT.sol";
 
 contract Aggregator is UseConfig {
   constructor(address _addr) UseConfig(_addr){}
@@ -47,9 +48,82 @@ contract Aggregator is UseConfig {
       address token = v().pair_tokens(pairs[i]);
       tokens[i] = token;
       topics[i] = v().pair_topics(pairs[i]);
-      balances[i] = IERC20(token).balanceOf(_user);
+      balances[i] = IERC20(pairs[i]).balanceOf(_user);
       shares[i] = v().share_sqrt(pairs[i], _user);
       kudos[i] = v().kudos(pairs[i], _user);
     }
   }
+
+  function getTopicLength(address _nft, uint _id, address _voter, uint[] memory topics) internal view returns(uint len){
+    address[] memory user_pairs = v().user_pairs(_voter);
+    for(uint i = 0; i < user_pairs.length; i++){
+      for(uint i2 = 0; i2 < topics.length; i2++){
+	if(v().pair_topics(user_pairs[i]) == topics[i2]){
+	  uint balance = IERC20(user_pairs[i]).balanceOf(_voter);
+	  if(balance > 0 && v().burn_limits(v().pair_tokens(user_pairs[i])) - v().user_item_burn(msg.sender, _nft, _id, user_pairs[i]) > 0 && IERC721(_nft).ownerOf(_id) != msg.sender){
+	    len += 1;
+	  }
+	}
+      }
+    }
+
+  }
+  
+  function getVotableTopics(address _nft, uint _id, address _voter, uint[] memory topics, uint len) internal view returns(uint[] memory votableTopics, uint[] memory max_amounts){
+    address[] memory user_pairs = v().user_pairs(_voter);
+    votableTopics = new uint[](len);
+    max_amounts = new uint[](len);
+    uint i3 = 0;
+    for(uint i = 0; i < user_pairs.length; i++){
+      for(uint i2 = 0; i2 < topics.length; i2++){
+	if(v().pair_topics(user_pairs[i]) == topics[i2]){
+	  uint balance = IERC20(user_pairs[i]).balanceOf(_voter);
+	  if(balance > 0 && v().burn_limits(v().pair_tokens(user_pairs[i])) - v().user_item_burn(msg.sender, _nft, _id, user_pairs[i]) > 0){
+	    votableTopics[i3] = topics[i2];
+	    max_amounts[i3] = v().burn_limits(v().pair_tokens(user_pairs[i])) - v().user_item_burn(msg.sender, _nft, _id, user_pairs[i]);
+	    i3 += 1;
+	  }
+	}
+      }
+    }
+  }
+
+  function getVotablePairs(address _nft, uint _id, address _voter, uint[] memory topics, uint len) internal view returns(address[] memory votable_pairs){
+    address[] memory user_pairs = v().user_pairs(_voter);
+    votable_pairs = new address[](len);
+    uint i3 = 0;
+    for(uint i = 0; i < user_pairs.length; i++){
+      for(uint i2 = 0; i2 < topics.length; i2++){
+	if(v().pair_topics(user_pairs[i]) == topics[i2]){
+	  uint balance = IERC20(user_pairs[i]).balanceOf(_voter);
+	  if(balance > 0 && v().burn_limits(v().pair_tokens(user_pairs[i])) - v().user_item_burn(msg.sender, _nft, _id, user_pairs[i]) > 0){
+	    votable_pairs[i3] = user_pairs[i];
+	    i3 += 1;
+	  }
+	}
+      }
+    }
+  }
+    
+  function infoItem(address _nft, uint _id, address _voter) public view returns(uint[] memory topics, uint[] memory votableTopics, uint[] memory max_amounts, address[] memory votable_pairs){
+    uint[] memory _topics = v().item_topics(_nft, _id);
+    bool existsFree = false;
+    for(uint i = 0; i < _topics.length; i++){
+      if(_topics[i] == v().free_topic()){
+	existsFree = true;
+	break;
+      }
+    }
+    topics = new uint[](existsFree ? _topics.length : _topics.length + 1);
+    for(uint i = 0; i < _topics.length; i++){
+      topics[0] = _topics[i];
+    }
+    if(!existsFree){
+      topics[_topics.length] = v().free_topic();
+    }
+    uint len = getTopicLength(_nft, _id, _voter, topics);
+    (votableTopics, max_amounts) = getVotableTopics(_nft, _id, _voter, topics, len);
+    votable_pairs = getVotablePairs(_nft, _id, _voter, topics, len);
+  }
+
 }

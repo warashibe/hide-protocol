@@ -186,6 +186,11 @@ contract Viewer {
     id =_getUint(abi.encode("item_indexes_id",_str));
     nft = _getAddress(abi.encode("item_indexes_contract",_str));
   }
+
+  
+  function user_item_burn(address _addr1, address _addr2, uint _uint1, address _addr3) public view returns(uint){
+    return _getUint(abi.encode("user_item_burn", _addr1, _addr2, _uint1, _addr3));
+  }
   
   function pairs(address _addr, uint _uint) public view returns(address){
     return _getAddress(abi.encode("pairs",_addr, _uint));

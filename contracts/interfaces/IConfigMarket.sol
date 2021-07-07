@@ -38,4 +38,6 @@ interface IConfigMarket {
   function setShareSqrt(address _addr1, address _addr2, uint _uint) external;
 
   function setItemIndexes(string memory _str, address _addr, uint _uint) external;
+
+  function setUserItemBurn(address _addr1, address _addr2, uint _uint1, address _addr3, uint _uint2) external;
 }

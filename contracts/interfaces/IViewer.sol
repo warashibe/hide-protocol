@@ -117,4 +117,6 @@ interface IViewer {
   
   function getConvertible (address _pair) external view returns (uint);
 
+  function user_item_burn(address _addr1, address _addr2, uint _uint1, address _addr3) external view returns(uint);
+
 }

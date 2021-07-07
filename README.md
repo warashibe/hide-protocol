@@ -26,4 +26,4 @@ HiÐΞ Protocol is a DAO protocol for sustainable NFT rewards on Ethereum blockc
 - Withdraw: [0x437a01c9672a4bFD90185DAbDE35AD8f6feDFec4](https://polygonscan.com/address/0x437a01c9672a4bFD90185DAbDE35AD8f6feDFec4)
 - VP: [0x07c134d225B6bbf3D47d79CCffa30186617Db252](https://polygonscan.com/address/0x07c134d225B6bbf3D47d79CCffa30186617Db252)
 - WPVP: [0xea01F364d9794fE3dA3045C3445A971007c5B680](https://polygonscan.com/address/0xea01F364d9794fE3dA3045C3445A971007c5B680)
-- Aggregator: [0xF3f56baC84b8cC734746f42260BE3BC52E81A3C4](https://polygonscan.com/address/0xF3f56baC84b8cC734746f42260BE3BC52E81A3C4)
+- Aggregator: [0x25D16cc217dE9e5e84c84F2e209700FA18eC4fBF](https://polygonscan.com/address/0x25D16cc217dE9e5e84c84F2e209700FA18eC4fBF)

@@ -124,6 +124,11 @@ contract ConfigMarket is Ownable {
     IModifiers(IAddresses(addr).modifiers()).onlyDEXOrMarket(msg.sender);
     _setUint(abi.encode("total_kudos",_addr), _uint);
   }
+
+  function setUserItemBurn(address _addr1, address _addr2, uint _uint1, address _addr3, uint _uint2) external{
+    IModifiers(IAddresses(addr).modifiers()).onlyMarket(msg.sender);
+    _setUint(abi.encode("user_item_burn",_addr1, _addr2, _uint1, _addr3), _uint2);
+  }
   
   function setShare(address _addr1, address _addr2, uint _uint) external {
     IModifiers(IAddresses(addr).modifiers()).onlyDEXOrMarket(msg.sender);

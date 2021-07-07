@@ -47,10 +47,11 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
     addItem(nft, id, _topics);
   }
   
-  function burnFor (address _nft, uint _id, address _pair, uint _topic, uint _amount) public {
+  function burnFor (address _nft, uint _id, address _pair, uint _amount) public {
     require(v().items(_nft, _id), "item not registered");
     require(msgSender() != IERC721(_nft).ownerOf(_id), "item owner cannot vote");
-    uint limit = v().burn_limits(v().pair_tokens(_pair));
+    uint _topic = v().pair_topics(_pair);
+    uint limit = v().burn_limits(v().pair_tokens(_pair)) - v().user_item_burn(msgSender(), _nft, _id, _pair);
     require(limit == 0 || _amount <= limit, "amount is larger than limit");
     bool existsTopic = v().free_topic() == _topic ? true : false;
     if(!existsTopic){
@@ -73,6 +74,7 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
     c().pushUserPairs(item_owner, _pair);
     c().pushUserPairs(msgSender(), _pair);
     m().pushItemPairs(_nft, _id, _pair);
+    m().setUserItemBurn(msgSender(), _nft, _id, _pair, _amount);
     e().burn(_nft, _id, msgSender(), item_owner, _pair, _reward, _amount - _reward);
   }
   
