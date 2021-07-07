@@ -9,7 +9,6 @@ import "../lib/NFT.sol";
 
 contract Aggregator is UseConfig {
   constructor(address _addr) UseConfig(_addr){}
-    
   function infoTopic(string memory _name) public view returns(uint topic, address[] memory pairs, address[] memory tokens, uint[] memory budgets){
     topic = v().topic_indexes(_name);
     pairs = v().topic_pairs(topic);
@@ -53,7 +52,6 @@ contract Aggregator is UseConfig {
       kudos[i] = v().kudos(pairs[i], _user);
     }
   }
-
   function getTopicLength(address _nft, uint _id, address _voter, uint[] memory topics) internal view returns(uint len){
     address[] memory user_pairs = v().user_pairs(_voter);
     for(uint i = 0; i < user_pairs.length; i++){
@@ -104,7 +102,8 @@ contract Aggregator is UseConfig {
       }
     }
   }
-    
+
+  
   function infoItem(address _nft, uint _id, address _voter) public view returns(uint[] memory topics, uint[] memory votableTopics, uint[] memory max_amounts, address[] memory votable_pairs){
     uint[] memory _topics = v().item_topics(_nft, _id);
     bool existsFree = false;
@@ -116,10 +115,10 @@ contract Aggregator is UseConfig {
     }
     topics = new uint[](existsFree ? _topics.length : _topics.length + 1);
     for(uint i = 0; i < _topics.length; i++){
-      topics[0] = _topics[i];
+      topics[i] = _topics[i];
     }
     if(!existsFree){
-      topics[_topics.length] = v().free_topic();
+      topics[topics.length - 1] = v().free_topic();
     }
     uint len = getTopicLength(_nft, _id, _voter, topics);
     (votableTopics, max_amounts) = getVotableTopics(_nft, _id, _voter, topics, len);

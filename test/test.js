@@ -563,8 +563,9 @@ describe("Integration", () => {
       .to.be.gt(7)
       .lt(8)
     expect((await aggr.infoUser(a(p1))).topics[0].toString() * 1).to.equal(2)
+
     expect(
       (await aggr.infoItem(a(nft), 2, a(p1))).votable_pairs.length
-    ).to.equal(1)
+    ).to.equal(3)
   })
 })
