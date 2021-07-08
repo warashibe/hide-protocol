@@ -315,7 +315,7 @@ describe("Integration", () => {
 
     // burn for item
     await pToken2.connect(p1).approve(a(market), UINT_MAX)
-    await market.connect(p1).burnFor(a(nft), 2, pair2, to18(5))
+    await market.connect(p1).burnFor(a(nft), 2, pair2, to18(5), "ref")
     expect(await jpyc.balanceOf(a(p1))).to.equal(to18(101))
     expect(await jpyc.balanceOf(a(p3))).to.equal(to18(104))
     expect(await jpyc.balanceOf(a(withdraw))).to.equal(to18(995))
@@ -443,7 +443,7 @@ describe("Integration", () => {
 
     // burn for item
     await pToken2.connect(p1).approve(a(market), UINT_MAX)
-    await market.connect(p1).burnFor(a(nft), 2, pair2, to18(5))
+    await market.connect(p1).burnFor(a(nft), 2, pair2, to18(5), "ref")
     expect(await jpyc.balanceOf(a(p1))).to.equal(to18(101))
     expect(await jpyc.balanceOf(a(p3))).to.equal(to18(104))
     expect(await jpyc.balanceOf(a(withdraw))).to.equal(to18(995))
@@ -483,7 +483,7 @@ describe("Integration", () => {
 
     // burn for item
     await pToken2.connect(p1).approve(a(market), UINT_MAX)
-    await market.connect(p1).burnFor(a(nft), 2, pair2, to18(5))
+    await market.connect(p1).burnFor(a(nft), 2, pair2, to18(5), "ref")
     expect(await jpyc.balanceOf(a(p1))).to.equal(to18(102))
     expect(await jpyc.balanceOf(a(p3))).to.equal(to18(108))
     expect(await jpyc.balanceOf(a(withdraw))).to.equal(to18(990))
@@ -527,8 +527,8 @@ describe("Integration", () => {
     const pToken3 = new Contract(pair3, _IERC20.abi, owner)
     await pToken2.connect(p1).approve(a(market), UINT_MAX)
     await pToken3.connect(p1).approve(a(market), UINT_MAX)
-    await market.connect(p1).burnFor(a(nft), 2, pair2, to18(5))
-    await market.connect(p1).burnFor(a(nft), 2, pair3, to18(5))
+    await market.connect(p1).burnFor(a(nft), 2, pair2, to18(5), "ref")
+    await market.connect(p1).burnFor(a(nft), 2, pair3, to18(5), "ref")
     expect(await viewer.user_pairs(a(p1))).to.eql([pair2, pair1, pair3])
     expect(await viewer.item_pairs(a(nft), 2)).to.eql([pair2, pair3])
   })
@@ -556,8 +556,8 @@ describe("Integration", () => {
     const pToken3 = new Contract(pair3, _IERC20.abi, owner)
     await pToken2.connect(p1).approve(a(market), UINT_MAX)
     await pToken3.connect(p1).approve(a(market), UINT_MAX)
-    await market.connect(p1).burnFor(a(nft), 2, pair2, to18(5))
-    await market.connect(p1).burnFor(a(nft), 2, pair3, to18(5))
+    await market.connect(p1).burnFor(a(nft), 2, pair2, to18(5), "ref")
+    await market.connect(p1).burnFor(a(nft), 2, pair3, to18(5), "ref")
     expect((await aggr.infoTopic("TOPIC1")).topic.toString() * 1).to.equal(2)
     expect(from18((await aggr.infoVote(0, to18(5), 2, a(p1))).balances[1]) * 1)
       .to.be.gt(7)

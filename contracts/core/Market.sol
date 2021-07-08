@@ -47,7 +47,7 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
     addItem(nft, id, _topics);
   }
   
-  function burnFor (address _nft, uint _id, address _pair, uint _amount) public {
+  function burnFor (address _nft, uint _id, address _pair, uint _amount, string memory ref) public {
     require(v().items(_nft, _id), "item not registered");
     require(msgSender() != IERC721(_nft).ownerOf(_id), "item owner cannot vote");
     uint _topic = v().pair_topics(_pair);
@@ -75,7 +75,7 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
     c().pushUserPairs(msgSender(), _pair);
     m().pushItemPairs(_nft, _id, _pair);
     m().setUserItemBurn(msgSender(), _nft, _id, _pair, _amount);
-    e().burn(_nft, _id, msgSender(), item_owner, _pair, _reward, _amount - _reward);
+    e().burn(_nft, _id, msgSender(), item_owner, _pair, _reward, _amount - _reward, ref);
   }
   
   function addShare(address _pair, uint _amount, address _holder) internal {
@@ -84,13 +84,12 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
     uint _last_balance = v().share_sqrt(_pair, _holder);
     uint _new_balance = u().sqrt(_balance + _amount);
     uint diff = _new_balance - _last_balance;
-    uint _totalSupply = v().totalSupply(_pair) + _balance + diff - _last_balance;
-    uint _lastSupply = _supply + diff;
-    m().setTotalShareSqrt(_pair, _totalSupply);
+    m().setTotalShareSqrt(_pair, v().totalSupply(_pair) + _balance + diff - _last_balance);
     m().setShareSqrt(_pair, _holder, _new_balance);
     m().setLastBlocks(_pair, _holder, block.number);
     m().setLastBlock(_pair, block.number);
-    m().setLastSupply(_pair, _lastSupply);
+    m().setLastSupply(_pair, _supply + diff);
+    m().setKudos(_pair, _holder, v().kudos(_pair, _holder) + _amount);
   }
   
 }

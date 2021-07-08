@@ -11,7 +11,7 @@ contract Events is Ownable, UseConfig, AccessControlEnumerable {
 
   event Vote(uint indexed poll, uint indexed topic, uint vp, address indexed voter, address token, uint minted, uint share);
   
-  event Burn(address indexed nft, uint indexed id, address indexed burner, address owner, address token, uint reward, uint payback);
+  event Burn(address indexed nft, uint indexed id, address indexed burner, address owner, address token, uint reward, uint payback, string ref);
 
   event Convert(address indexed token, uint share, address holder, uint amount);
 
@@ -29,8 +29,8 @@ contract Events is Ownable, UseConfig, AccessControlEnumerable {
     emit Vote(_poll, _topic, _vp, voter, token, _minted, _share);
   }
 
-  function burn(address nft, uint id, address from, address to, address token, uint reward, uint payback) external onlyEmitter {
-    emit Burn(nft, id, from, to, token, reward, payback);
+  function burn(address nft, uint id, address from, address to, address token, uint reward, uint payback, string memory ref) external onlyEmitter {
+    emit Burn(nft, id, from, to, token, reward, payback, ref);
   }
 
   function convert(address token, uint share, address holder, uint amount) external onlyEmitter {

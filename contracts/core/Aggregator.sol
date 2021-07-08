@@ -9,6 +9,7 @@ import "../lib/NFT.sol";
 
 contract Aggregator is UseConfig {
   constructor(address _addr) UseConfig(_addr){}
+
   function infoTopic(string memory _name) public view returns(uint topic, address[] memory pairs, address[] memory tokens, uint[] memory budgets){
     topic = v().topic_indexes(_name);
     pairs = v().topic_pairs(topic);
@@ -103,7 +104,6 @@ contract Aggregator is UseConfig {
     }
   }
 
-  
   function infoItem(address _nft, uint _id, address _voter) public view returns(uint[] memory topics, uint[] memory votableTopics, uint[] memory max_amounts, address[] memory votable_pairs){
     uint[] memory _topics = v().item_topics(_nft, _id);
     bool existsFree = false;
