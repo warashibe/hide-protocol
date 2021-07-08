@@ -533,7 +533,7 @@ describe("Integration", () => {
     expect(await viewer.item_pairs(a(nft), 2)).to.eql([pair2, pair3])
   })
 
-  it.only("should aggregate", async () => {
+  it("should aggregate", async () => {
     // set poll
     await jpyc.approve(a(gov), UINT_MAX)
     await gov.setPoll(p, a(jpyc), to18(1000), 30, [])

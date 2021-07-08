@@ -80,16 +80,17 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
   
   function addShare(address _pair, uint _amount, address _holder) internal {
     uint _balance = v().balanceOf(_pair, _holder);
-    uint _supply = v().total_share_sqrt(_pair);
+    uint _supply = v().totalSupply(_pair);
     uint _last_balance = v().share_sqrt(_pair, _holder);
-    uint _new_balance = u().sqrt(_balance + _amount);
-    uint diff = _new_balance - _last_balance;
-    m().setTotalShareSqrt(_pair, v().totalSupply(_pair) + _balance + diff - _last_balance);
+    uint _last_supply = v().total_share_sqrt(_pair);
+    uint _new_balance = u().sqrt(_balance * _balance + _amount);
+    uint diff = _new_balance - _balance;
+    m().setTotalShareSqrt(_pair, _last_supply + _balance + diff - _last_balance);
     m().setShareSqrt(_pair, _holder, _new_balance);
     m().setLastBlocks(_pair, _holder, block.number);
     m().setLastBlock(_pair, block.number);
     m().setLastSupply(_pair, _supply + diff);
     m().setKudos(_pair, _holder, v().kudos(_pair, _holder) + _amount);
   }
-  
+
 }
