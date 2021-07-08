@@ -21,7 +21,7 @@ HiÐΞ Protocol is a DAO protocol for sustainable NFT rewards on Ethereum blockc
 - Factory: [0xb6AB8d73b62c4a83cc70B3b3108D09F87e13E090](https://polygonscan.com/address/0xb6AB8d73b62c4a83cc70B3b3108D09F87e13E090)
 - Utils: [0x99C9305b8243Ddcf72B2cd13b0aEb8338c7c1bA2](https://polygonscan.com/address/0x99C9305b8243Ddcf72B2cd13b0aEb8338c7c1bA2)
 - Viewer: [0x9a70Ea61c892f46C9E4413AD786fefFd3a82523c](https://polygonscan.com/address/0x9a70Ea61c892f46C9E4413AD786fefFd3a82523c)
-- Market: [0x8B7FFf115189f2A3c4bEf224f178b18a5ae477cF](https://polygonscan.com/address/0x8B7FFf115189f2A3c4bEf224f178b18a5ae477cF)
+- Market: [0xD86a6Ae87573c4a9599845D850430fbd841c0f5B](https://polygonscan.com/address/0xD86a6Ae87573c4a9599845D850430fbd841c0f5B)
 - DEX: [0x50fA97aAc22a667B3ba576B4659b549642f3297B](https://polygonscan.com/address/0x50fA97aAc22a667B3ba576B4659b549642f3297B)
 - Withdraw: [0x437a01c9672a4bFD90185DAbDE35AD8f6feDFec4](https://polygonscan.com/address/0x437a01c9672a4bFD90185DAbDE35AD8f6feDFec4)
 - VP: [0x07c134d225B6bbf3D47d79CCffa30186617Db252](https://polygonscan.com/address/0x07c134d225B6bbf3D47d79CCffa30186617Db252)
