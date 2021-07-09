@@ -2,6 +2,7 @@ const { expect } = require("chai")
 const B = require("big.js")
 const { waffle, ethers } = require("hardhat")
 const { utils, Contract } = ethers
+const { map } = require("ramda")
 const _IERC20 = require("@openzeppelin/contracts/build/contracts/IERC20.json")
 const {
   arr,
@@ -533,7 +534,7 @@ describe("Integration", () => {
     expect(await viewer.item_pairs(a(nft), 2)).to.eql([pair2, pair3])
   })
 
-  it("should aggregate", async () => {
+  it.only("should aggregate", async () => {
     // set poll
     await jpyc.approve(a(gov), UINT_MAX)
     await gov.setPoll(p, a(jpyc), to18(1000), 30, [])
@@ -566,6 +567,13 @@ describe("Integration", () => {
 
     expect(
       (await aggr.infoItem(a(nft), 2, a(p1))).votable_pairs.length
+    ).to.equal(3)
+    const tokens = (await aggr.infoUser(a(p1))).pairs
+    expect((await aggr.infoDEX(tokens, a(p1))).per[1].toString() * 1).to.equal(
+      0
+    )
+    expect(
+      (await aggr.infoBudgets([pair1, pair2, pair3])).tokens.length
     ).to.equal(3)
   })
 })

@@ -124,5 +124,33 @@ contract Aggregator is UseConfig {
     (votableTopics, max_amounts) = getVotableTopics(_nft, _id, _voter, topics, len);
     votable_pairs = getVotablePairs(_nft, _id, _voter, topics, len);
   }
+  
+  function infoDEX(address[] memory pairs, address _holder) public view returns(uint[] memory pools, uint[] memory shares, uint[] memory total_shares, uint[] memory max_mintable, uint[] memory per){
+    pools = new uint[](pairs.length);
+    shares = new uint[](pairs.length);
+    total_shares = new uint[](pairs.length);
+    max_mintable = new uint[](pairs.length);
+    per = new uint[](pairs.length);
+    for(uint i = 0; i < pairs.length; i++){
+      pools[i] = v().getConvertible(pairs[i]);
+      shares[i] = v().balanceOf(pairs[i], _holder);
+      total_shares[i] = v().totalSupply(pairs[i]);
+      max_mintable[i] = shares[i] == 0 ? 0 : v().getConvertibleAmount(pairs[i], shares[i], _holder);
+      per[i] = max_mintable[i] == 0 ? 0 : max_mintable[i] * 10 ** 9 / shares[i];
+    }
+  }
+  
+  function infoBudgets(address[] memory pairs) public view returns(uint[] memory budgets, uint[] memory topics, string[] memory topic_ids, address[] memory tokens){
+    budgets = new uint[](pairs.length);
+    topics = new uint[](pairs.length);
+    topic_ids = new string[](pairs.length);
+    tokens = new address[](pairs.length);
+    for(uint i = 0; i < pairs.length; i++){
+      budgets[i] = v().getConvertible(pairs[i]) + IERC20(pairs[i]).totalSupply();
+      topics[i] = v().pair_topics(pairs[i]);
+      topic_ids[i] = v().topic_names(topics[i]);
+      tokens[i] = v().pair_tokens(pairs[i]);
+    }
+  }
 
 }

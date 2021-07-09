@@ -15,12 +15,12 @@ contract DEX is Ownable, UseConfig, EIP712MetaTransaction {
   function convert (address _pair, uint _amount) public {
     uint _balance = v().balanceOf(_pair, msgSender());
     require(_amount <= _balance, "share not enough");
-    uint _supply = v().total_share_sqrt(_pair);
+    uint _supply = v().totalSupply(_pair);
     uint _last_balance = v().share_sqrt(_pair, msgSender());
-    uint _new_balance = u().sqrt(_balance - _amount);
+    uint _last_supply = v().total_share_sqrt(_pair);
+    uint _new_balance = u().sqrt(_balance * _balance - _amount);
     uint diff = _last_balance - _new_balance;
-    uint _totalSupply = v().totalSupply(_pair) + _balance - diff - _last_balance;
-    uint _lastSupply = _supply - diff;
+    uint _totalSupply = _supply + _balance - diff - _last_balance;
     ICollector(a().collector()).collect(msgSender());
     uint mintable = v().getConvertibleAmount(_pair, diff, msgSender());
     ITopic(_pair).mint(msgSender(), mintable);
@@ -28,7 +28,7 @@ contract DEX is Ownable, UseConfig, EIP712MetaTransaction {
     m().setShareSqrt(_pair, msgSender(), _new_balance);
     m().setLastBlocks(_pair, msgSender(), block.number);
     m().setLastBlock(_pair, block.number);
-    m().setLastSupply(_pair, _lastSupply);
+    m().setLastSupply(_pair, _supply - diff);
     if(v().claimable(_pair) >= mintable){
       c().setClaimable(_pair, v().claimable(_pair) - mintable);
     }else{
