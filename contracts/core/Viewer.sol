@@ -70,12 +70,11 @@ contract Viewer {
 
   function totalSupply(address pair) public view returns (uint256 _supply) {
     uint256 minus = dilution_denominator() == 0 ? 0 : total_share_sqrt(pair) * (block.number - lastBlock(pair)) * dilution_numerator() / dilution_denominator();
-    _supply = lastSupply(pair) > minus ? lastSupply(pair) - minus : 0;
+    _supply = total_share_sqrt(pair) > minus ? total_share_sqrt(pair) - minus : 0;
   }
 
   function balanceOf(address pair, address account) public view returns (uint _balance) {
-    uint minus = dilution_denominator() == 0 ? 0 : share_sqrt(pair, account) * (block.number - lastBlocks(pair, account)) * dilution_numerator() / dilution_denominator();
-    _balance =  share_sqrt(pair, account) > minus ? share_sqrt(pair, account) - minus : 0;
+    _balance = total_share(pair) == 0 ? 0 : totalSupply(pair) * shareOf(pair, account) / total_share(pair);
   }
 
   function burn_limits(address _addr) public view returns(uint) {
@@ -84,10 +83,6 @@ contract Viewer {
   
   function lastBlock(address _addr) public view returns(uint) {
     return _getUint(abi.encode("lastBlock", _addr));
-  }
-  
-  function lastSupply(address _addr) public view returns(uint) {
-    return _getUint(abi.encode("lastSupply", _addr));
   }
   
   function lastBlocks(address _addr, address _addr2) public view returns(uint) {
@@ -216,6 +211,18 @@ contract Viewer {
   function total_share_sqrt(address _addr) public view returns(uint){
     return _getUint(abi.encode("total_share_sqrt",_addr));
   }
+
+  function total_share(address _addr) public view returns(uint){
+    return _getUint(abi.encode("total_share",_addr));
+  }
+
+  function token_version(address _addr) public view returns(uint){
+    return _getUint(abi.encode("token_version",_addr));
+  }
+  
+  function genesises(address _addr) public view returns(uint){
+    return _getUint(abi.encode("genesises",_addr));
+  }
   
   function claimable(address _addr) public view returns(uint){
     return _getUint(abi.encode("claimable",_addr));
@@ -288,7 +295,25 @@ contract Viewer {
   }
   
   function getConvertible (address _pair) public view returns (uint _amount){
-    _amount = ITopic(_pair).totalInterests() + claimable(_pair) - claimed(_pair);    
+    if(token_version(_pair) == 2){
+      _amount = ITopic(_pair).totalInterests() + claimable(_pair) - claimed(_pair);
+    }else if(claimable(_pair) < claimed(_pair)) {
+      _amount = 0;
+    } else {
+      _amount = claimable(_pair) - claimed(_pair);
+    }
   }
-  
+
+  function toShare(address _pair, uint256 amount) public view returns (uint256 _share) {
+    _share = totalSupply(_pair) == 0 ? amount : amount * total_share(_pair) / totalSupply(_pair);
+  }
+
+  function toAmount(address _pair, uint256 _share) public view returns (uint256 _amount) {
+    _amount = total_share(_pair) == 0 ? 0 : _share * totalSupply(_pair) / total_share(_pair);
+  }
+
+  function shareOf(address _pair, address account) public view returns (uint256 _share) {
+    _share = lastBlocks(_pair, account) < genesises(_pair) ? 0 : share_sqrt(_pair, account);
+  }
+
 }

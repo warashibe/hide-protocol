@@ -7,8 +7,6 @@ interface IConfigMarket {
     
   function setLastBlock(address _addr, uint _uint) external;
   
-  function setLastSupply(address _addr, uint _uint) external;
-  
   function setLastBlocks(address _addr, address _addr2, uint _uint) external;
 
   function setDilutionRate(uint _numerator, uint _denominator) external;
@@ -31,6 +29,10 @@ interface IConfigMarket {
     
   function setTotalShareSqrt(address _addr, uint _uint) external;
 
+  function setTotalShare(address _addr, uint _uint) external;
+  
+  function setGenesises(address _addr, uint _uint) external;
+  
   function setClaimed(address _addr, uint _uint) external;
 
   function setShare(address _addr1, address _addr2, uint _uint) external;

@@ -83,6 +83,12 @@ interface IViewer {
   function total_kudos(address _addr) external view returns(uint);
   
   function total_share_sqrt(address _addr) external view returns(uint);
+
+  function total_share(address _addr) external view returns(uint);
+
+  function token_version(address _addr) external view returns(uint);
+
+  function genesises(address _addr) external view returns(uint);
   
   function claimable(address _addr) external view returns(uint);
   
@@ -119,4 +125,9 @@ interface IViewer {
 
   function user_item_burn(address _addr1, address _addr2, uint _uint1, address _addr3) external view returns(uint);
 
+  function toShare(address _pair, uint256 amount) external view returns (uint256 _share);
+  
+  function toAmount(address _pair, uint256 _share) external view returns (uint256 _amount);
+  
+  function shareOf(address _pair, address account) external view returns (uint256 _share);
 }

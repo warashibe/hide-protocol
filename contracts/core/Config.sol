@@ -112,6 +112,11 @@ contract Config is Ownable {
     IModifiers(IAddresses(addr).modifiers()).onlyFactory(msg.sender);
     _setUint(abi.encode("topic_indexes",_str), _uint);
   }
+
+  function setTokenVersion(address _addr, uint _uint) external {
+    IModifiers(IAddresses(addr).modifiers()).onlyGovernance(msg.sender);
+    _setUint(abi.encode("token_version",_addr), _uint);
+  }
   
   function setPairs(address _addr1, uint _uint, address _addr2) external {
     IModifiers(IAddresses(addr).modifiers()).onlyFactoryOrGovernance(msg.sender);

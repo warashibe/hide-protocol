@@ -307,12 +307,14 @@ describe("Integration", () => {
     await gov.setPoll(p, a(jpyc), to18(1000), 30, [])
 
     // vote for topic
+    const mintable0 = await viewer.getMintable(0, to18(10), 2)
     await gov.connect(p1).vote(0, to18(10), 2)
 
     // get pair token
     const pair2 = await viewer.getPair(0, 2)
     const pToken2 = new Contract(pair2, _IERC20.abi, owner)
     expect(await pToken2.balanceOf(a(p1))).to.equal(to18(10))
+    expect(await pToken2.balanceOf(a(p1))).to.equal(mintable0.mintable)
 
     // burn for item
     await pToken2.connect(p1).approve(a(market), UINT_MAX)
@@ -324,7 +326,9 @@ describe("Integration", () => {
     // vote for topic with shareholders
     const mintable = await viewer.getMintable(0, to18(30), 2)
     await gov.connect(p3).vote(0, to18(30), 2)
-    expect(await pToken2.balanceOf(a(p3))).to.equal(mintable.mintable)
+    expect(await pToken2.balanceOf(a(p3))).to.equal(
+      B(mintable.mintable).minus(1).toFixed(0)
+    )
 
     const share = (await viewer.balanceOf(a(pToken2), a(p1))).toString() * 1
     const minus = B((await viewer.share_sqrt(pair2, a(p1))).toString())
@@ -334,13 +338,14 @@ describe("Integration", () => {
       await viewer.getConvertibleAmount(a(pToken2), share, a(p1))
     ).toString()
     const balance = (await pToken2.balanceOf(a(p1))).toString()
+
     await dex.connect(p1).convert(a(pToken2), B(share).minus(minus).toFixed(0))
     const balance2 = (await pToken2.balanceOf(a(p1))).toString()
     expect(
       B(balance2)
         .minus(balance * 1)
         .toNumber()
-    ).to.be.lt(0)
+    ).to.be.gt(0)
     // close poll => claim period
     await gov.closePoll(0)
     await isErr(gov.connect(p3).vote(0, to18(30), 2))
@@ -454,7 +459,9 @@ describe("Integration", () => {
     // vote for topic with shareholders
     const mintable = await viewer.getMintable(0, to18(30), 2)
     await gov.connect(p3).vote(0, to18(30), 2)
-    expect(await pToken2.balanceOf(a(p3))).to.equal(mintable.mintable)
+    expect(await pToken2.balanceOf(a(p3))).to.equal(
+      B(mintable.mintable).minus(1).toFixed(0)
+    )
 
     await checkEqualty([2])
 
@@ -472,7 +479,7 @@ describe("Integration", () => {
       B(balance2)
         .minus(balance * 1)
         .toNumber()
-    ).to.be.lt(0)
+    ).to.be.gt(0)
 
     await checkEqualty([2])
 
@@ -534,7 +541,7 @@ describe("Integration", () => {
     expect(await viewer.item_pairs(a(nft), 2)).to.eql([pair2, pair3])
   })
 
-  it.only("should aggregate", async () => {
+  it("should aggregate", async () => {
     // set poll
     await jpyc.approve(a(gov), UINT_MAX)
     await gov.setPoll(p, a(jpyc), to18(1000), 30, [])

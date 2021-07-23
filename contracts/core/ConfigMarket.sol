@@ -60,10 +60,6 @@ contract ConfigMarket is Ownable {
     return _setUint(abi.encode("lastBlock", _addr), _uint);
   }
   
-  function setLastSupply(address _addr, uint _uint) external {
-    return _setUint(abi.encode("lastSupply", _addr), _uint);
-  }
-  
   function setLastBlocks(address _addr, address _addr2, uint _uint) external {
     return _setUint(abi.encode("lastBlocks", _addr, _addr2), _uint);
   }
@@ -110,6 +106,16 @@ contract ConfigMarket is Ownable {
     _setUint(abi.encode("total_share_sqrt",_addr), _uint);
   }  
 
+  function setTotalShare(address _addr, uint _uint) external {
+    IModifiers(IAddresses(addr).modifiers()).onlyDEXOrMarket(msg.sender);
+    _setUint(abi.encode("total_share",_addr), _uint);
+  }  
+  
+  function setGenesises(address _addr, uint _uint) external {
+    IModifiers(IAddresses(addr).modifiers()).onlyDEXOrMarket(msg.sender);
+    _setUint(abi.encode("genesises",_addr), _uint);
+  }  
+  
   function setClaimed(address _addr, uint _uint) external {
     IModifiers(IAddresses(addr).modifiers()).onlyDEX(msg.sender);
     _setUint(abi.encode("claimed",_addr), _uint);

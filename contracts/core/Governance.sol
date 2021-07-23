@@ -40,7 +40,9 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
     uint free_topic = v().free_topic();
     if(v().getPair(_poll, free_topic) == address(0)){
       string memory topic_name = v().topic_names(free_topic);
-      c().setPairs(_token, free_topic, IFactory(a().factory()).issue(topic_name, topic_name, address(a())));
+      address _pair_token = IFactory(a().factory()).issue(topic_name, topic_name, address(a()));
+      c().setPairs(_token, free_topic, _pair_token);
+      c().setTokenVersion(_pair_token, 2);
     }
 
   }
@@ -87,7 +89,9 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
   function _setPair (address _token, uint _topic) internal {
     if(v().pairs(_token, _topic) == address(0)){
       string memory name = u().concat(u().concat(IERC20Metadata(_token).name(),"/"), v().topic_names(_topic));
-      c().setPairs(_token, _topic, IFactory(a().factory()).issue(name, name, address(a())));
+      address _pair_token = IFactory(a().factory()).issue(name, name, address(a()));
+      c().setPairs(_token, _topic, _pair_token);
+      c().setTokenVersion(_pair_token, 2);
     }
   }
   

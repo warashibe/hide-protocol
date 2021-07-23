@@ -1,6 +1,6 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-
+import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../lib/NFT.sol";
 import "../interfaces/IWithdraw.sol";
@@ -80,17 +80,18 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
   
   function addShare(address _pair, uint _amount, address _holder) internal {
     uint _balance = v().balanceOf(_pair, _holder);
-    uint _supply = v().totalSupply(_pair);
-    uint _last_balance = v().share_sqrt(_pair, _holder);
-    uint _last_supply = v().total_share_sqrt(_pair);
     uint _new_balance = u().sqrt(_balance * _balance + _amount);
     uint diff = _new_balance - _balance;
-    m().setTotalShareSqrt(_pair, _last_supply + _balance + diff - _last_balance);
-    m().setShareSqrt(_pair, _holder, _new_balance);
+    uint share = v().toShare(_pair, diff);
+    uint _supply = v().totalSupply(_pair);
+    bool reset = _supply == 0 || share / _supply > 10 ** 15;
+    if(reset) _supply = 0;
+    if(reset) m().setGenesises(_pair, block.number);
+    m().setTotalShare(_pair, reset ? share : v().total_share(_pair) + share);
+    m().setTotalShareSqrt(_pair, _supply + diff);
+    m().setShareSqrt(_pair, _holder, v().shareOf(_pair, _holder) + share); 
     m().setLastBlocks(_pair, _holder, block.number);
     m().setLastBlock(_pair, block.number);
-    m().setLastSupply(_pair, _supply + diff);
-    m().setKudos(_pair, _holder, v().kudos(_pair, _holder) + _amount);
   }
 
 }

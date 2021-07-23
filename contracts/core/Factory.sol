@@ -13,7 +13,6 @@ contract Factory is Ownable, UseConfig, EIP712MetaTransaction {
 
   function _issue (string memory _name, string memory _sym, address _addr) internal returns (address _token){
     Topic _topic = new Topic(_name, _sym, v().freigeld_numerator(), v().freigeld_denominator(), _addr);
-    _topic.transferOwnership(msgSender());
     return address(_topic);
   }
   

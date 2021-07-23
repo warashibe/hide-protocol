@@ -27,6 +27,8 @@ interface IConfig {
   
   function setPolls(address _pool, address _token, uint _amount, uint _block, uint[] memory _topics) external returns (uint);
   
+  function setTokenVersion(address _addr, uint _uint) external;
+  
   function setPollAmount(uint _poll, uint _uint) external;
   
   function setPollTopics(uint _poll, uint[] memory _topics) external;
