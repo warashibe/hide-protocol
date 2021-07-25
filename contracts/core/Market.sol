@@ -46,13 +46,13 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
     m().setItemIndexes(_str, nft, id);
     addItem(nft, id, _topics);
   }
-  
-  function burnFor (address _nft, uint _id, address _pair, uint _amount, string memory ref) public {
+  function _isBurnable(address _nft, uint _id, address _pair, uint _amount) internal view {
     require(v().items(_nft, _id), "item not registered");
     require(msgSender() != IERC721(_nft).ownerOf(_id), "item owner cannot vote");
     uint _topic = v().pair_topics(_pair);
-    uint limit = v().burn_limits(v().pair_tokens(_pair)) - v().user_item_burn(msgSender(), _nft, _id, _pair);
-    require(limit == 0 || _amount <= limit, "amount is larger than limit");
+    uint limit = v().burn_limits(v().pair_tokens(_pair));
+    uint burned = v().user_item_burn(msgSender(), _nft, _id, _pair);
+    require(limit == 0 || _amount <= limit - burned, "amount is larger than limit");
     bool existsTopic = v().free_topic() == _topic ? true : false;
     if(!existsTopic){
       for(uint i = 0; i < v().item_topics(_nft, _id).length; i++){
@@ -63,6 +63,10 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
       }
     }
     require(existsTopic, "item does not have the topic");
+  }
+  
+  function burnFor (address _nft, uint _id, address _pair, uint _amount, string memory ref) public {
+    _isBurnable(_nft, _id, _pair, _amount);
     ICollector(a().collector()).collect(msgSender());
     address item_owner = NFT(_nft).ownerOf(_id);
     uint _reward = _amount * v().creator_percentage() / 10000;
@@ -74,7 +78,8 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
     c().pushUserPairs(item_owner, _pair);
     c().pushUserPairs(msgSender(), _pair);
     m().pushItemPairs(_nft, _id, _pair);
-    m().setUserItemBurn(msgSender(), _nft, _id, _pair, _amount);
+    uint burned = v().user_item_burn(msgSender(), _nft, _id, _pair);
+    m().setUserItemBurn(msgSender(), _nft, _id, _pair, burned + _amount);
     e().burn(_nft, _id, msgSender(), item_owner, _pair, _reward, _amount - _reward, ref);
   }
   
