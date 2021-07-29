@@ -229,6 +229,7 @@ describe("Integration", () => {
     fct = await deploy("Factory", a(addr))
     await addr.setFactory(a(fct))
     await col.addAgent(a(fct))
+    await events.addEmitter(a(fct))
 
     // Topics
     topics = await deploy(
@@ -239,7 +240,7 @@ describe("Integration", () => {
     )
     await addr.setTopics(a(topics))
     await topics.addMinter(a(fct))
-    await fct.createFreeTopic("FREE", "free")
+    await fct.createFreeTopic("FREE", "free", "create")
 
     // NFT
     nft = await deploy(
@@ -275,12 +276,12 @@ describe("Integration", () => {
     p = await viewer.getPool("JPYC")
 
     // Create Topics
-    await fct.createTopic("TOPIC1", "topic1")
-    await fct.createTopic("TOPIC2", "topic2")
+    await fct.createTopic("TOPIC1", "topic1", "create")
+    await fct.createTopic("TOPIC2", "topic2", "create")
 
     // Create Items
-    await market.connect(p3).createItem("item", [1])
-    await market.connect(p3).createItem("item2", [3])
+    await market.connect(p3).createItem("item", [1], "create")
+    await market.connect(p3).createItem("item2", [3], "create")
   })
 
   it("should deploy contracts", async () => {})
@@ -300,7 +301,7 @@ describe("Integration", () => {
     expect(await vp.getVP(a(p3))).to.equal(to18(100))
 
     // updateItem topics
-    await market.connect(p3).updateItem(a(nft), 2, [2])
+    await market.connect(p3).updateItem(a(nft), 2, [2], "update")
 
     // set poll
     await jpyc.approve(a(gov), UINT_MAX)
@@ -308,7 +309,7 @@ describe("Integration", () => {
 
     // vote for topic
     const mintable0 = await viewer.getMintable(0, to18(10), 2)
-    await gov.connect(p1).vote(0, to18(10), 2)
+    await gov.connect(p1).vote(0, to18(10), 2, "vote")
 
     // get pair token
     const pair2 = await viewer.getPair(0, 2)
@@ -325,7 +326,7 @@ describe("Integration", () => {
 
     // vote for topic with shareholders
     const mintable = await viewer.getMintable(0, to18(30), 2)
-    await gov.connect(p3).vote(0, to18(30), 2)
+    await gov.connect(p3).vote(0, to18(30), 2, "vote")
     expect(await pToken2.balanceOf(a(p3))).to.equal(
       B(mintable.mintable).minus(1).toFixed(0)
     )
@@ -339,7 +340,9 @@ describe("Integration", () => {
     ).toString()
     const balance = (await pToken2.balanceOf(a(p1))).toString()
 
-    await dex.connect(p1).convert(a(pToken2), B(share).minus(minus).toFixed(0))
+    await dex
+      .connect(p1)
+      .convert(a(pToken2), B(share).minus(minus).toFixed(0), "convert")
     const balance2 = (await pToken2.balanceOf(a(p1))).toString()
     expect(
       B(balance2)
@@ -348,7 +351,7 @@ describe("Integration", () => {
     ).to.be.gt(0)
     // close poll => claim period
     await gov.closePoll(0)
-    await isErr(gov.connect(p3).vote(0, to18(30), 2))
+    await isErr(gov.connect(p3).vote(0, to18(30), 2), "vote")
 
     // check remaining amounts
     await checkEqualty([2])
@@ -385,6 +388,7 @@ describe("Integration", () => {
     await addr.setFactory(a(fct))
     await col.addAgent(a(fct))
     await topics.addMinter(a(fct))
+    await events.addEmitter(a(fct))
 
     // NFT
     nft = await deploy(
@@ -401,7 +405,7 @@ describe("Integration", () => {
     await col.addAgent(a(market))
     await events.addEmitter(a(gov))
 
-    await fct.createTopic("TOPIC3", "topic3")
+    await fct.createTopic("TOPIC3", "topic3", "create")
   })
 
   it("should add/remove fund to poll", async () => {
@@ -417,7 +421,7 @@ describe("Integration", () => {
     poll = await viewer.polls(0)
     expect(from18(B(poll.amount).sub(poll.minted).toFixed()) * 1).to.equal(20)
     expect(from18(await jpyc.balanceOf(a(withdraw))) * 1).to.equal(20)
-    await gov.connect(p1).vote(0, to18(30), 2)
+    await gov.connect(p1).vote(0, to18(30), 2, "vote")
     poll = await viewer.polls(0)
     expect(from18(B(poll.amount).sub(poll.minted).toFixed()) * 1).to.equal(19.4)
 
@@ -425,7 +429,7 @@ describe("Integration", () => {
     await isErr(withdraw.removeFund(0, to18(20)))
     await isErr(withdraw.connect(p2).removeFund(0, to18(19.4)))
     await withdraw.removeFund(0, to18(19.4))
-    await isErr(gov.connect(p1).vote(0, to18(30), 2))
+    await isErr(gov.connect(p1).vote(0, to18(30), 2), "vote")
     poll = await viewer.polls(0)
     expect(from18(B(poll.amount).sub(poll.minted).toFixed()) * 1).to.equal(0)
   })
@@ -436,10 +440,10 @@ describe("Integration", () => {
     await gov.setPoll(p, a(jpyc), to18(1000), 30, [])
 
     // vote for topic
-    await gov.connect(p1).vote(0, to18(100), 2)
+    await gov.connect(p1).vote(0, to18(100), 2, "vote")
 
     // update item topic
-    await market.connect(p3).updateItem(a(nft), 2, [2])
+    await market.connect(p3).updateItem(a(nft), 2, [2], "update")
 
     // get pair token 2
     const pair2 = await viewer.getPair(0, 2)
@@ -458,7 +462,7 @@ describe("Integration", () => {
 
     // vote for topic with shareholders
     const mintable = await viewer.getMintable(0, to18(30), 2)
-    await gov.connect(p3).vote(0, to18(30), 2)
+    await gov.connect(p3).vote(0, to18(30), 2, "vote")
     expect(await pToken2.balanceOf(a(p3))).to.equal(
       B(mintable.mintable).minus(1).toFixed(0)
     )
@@ -473,7 +477,9 @@ describe("Integration", () => {
       await viewer.getConvertibleAmount(a(pToken2), share, a(p1))
     ).toString()
     const balance = (await pToken2.balanceOf(a(p1))).toString()
-    await dex.connect(p1).convert(a(pToken2), B(share).minus(minus).toFixed(0))
+    await dex
+      .connect(p1)
+      .convert(a(pToken2), B(share).minus(minus).toFixed(0), "convert")
     const balance2 = (await pToken2.balanceOf(a(p1))).toString()
     expect(
       B(balance2)
@@ -485,7 +491,7 @@ describe("Integration", () => {
 
     // close poll => claim period
     await gov.closePoll(0)
-    await isErr(gov.connect(p3).vote(0, to18(30), 2))
+    await isErr(gov.connect(p3).vote(0, to18(30), 2, "vote"))
 
     await checkEqualty([2])
 
@@ -507,7 +513,7 @@ describe("Integration", () => {
     // vote for topic
     expect(from18(await vp.getVP(a(p1))) * 1).to.equal(100)
     expect(from18(await vp.getTotalVP()) * 1).to.equal(1000)
-    await gov.connect(p1).vote(0, to18(10), 2)
+    await gov.connect(p1).vote(0, to18(10), 2, "vote")
     expect(from18(await vp.getVP(a(p1))) * 1).to.equal(90)
     expect(from18(await vp.getTotalVP()) * 1).to.equal(990)
   })
@@ -518,12 +524,12 @@ describe("Integration", () => {
     await gov.setPoll(p, a(jpyc), to18(1000), 30, [])
 
     // vote for topic
-    await gov.connect(p1).vote(0, to18(10), 2)
-    await gov.connect(p1).vote(0, to18(10), 1)
-    await gov.connect(p1).vote(0, to18(10), 3)
+    await gov.connect(p1).vote(0, to18(10), 2, "vote")
+    await gov.connect(p1).vote(0, to18(10), 1, "vote")
+    await gov.connect(p1).vote(0, to18(10), 3, "vote")
 
     // update item topic
-    await market.connect(p3).updateItem(a(nft), 2, [1, 2, 3])
+    await market.connect(p3).updateItem(a(nft), 2, [1, 2, 3], "update")
 
     // get pair token 2
     const pair2 = await viewer.getPair(0, 2)
@@ -547,12 +553,12 @@ describe("Integration", () => {
     await gov.setPoll(p, a(jpyc), to18(1000), 30, [])
 
     // vote for topic
-    await gov.connect(p1).vote(0, to18(10), 2)
-    await gov.connect(p1).vote(0, to18(10), 1)
-    await gov.connect(p1).vote(0, to18(10), 3)
+    await gov.connect(p1).vote(0, to18(10), 2, "vote")
+    await gov.connect(p1).vote(0, to18(10), 1, "vote")
+    await gov.connect(p1).vote(0, to18(10), 3, "vote")
 
     // update item topic
-    await market.connect(p3).updateItem(a(nft), 2, [1, 2, 3])
+    await market.connect(p3).updateItem(a(nft), 2, [1, 2, 3], "update")
 
     // get pair token 2
     const pair2 = await viewer.getPair(0, 2)

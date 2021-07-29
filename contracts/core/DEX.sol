@@ -12,7 +12,7 @@ contract DEX is Ownable, UseConfig, EIP712MetaTransaction {
   
   constructor(address _addr) UseConfig(_addr) EIP712MetaTransaction("DEX", "1"){}
   
-  function convert (address _pair, uint _amount) public {
+  function convert (address _pair, uint _amount, string memory _ref) public {
     uint _supply = v().totalSupply(_pair);
     uint share = v().toShare(_pair, _amount);
     if(share > v().shareOf(_pair, msgSender())) {
@@ -35,7 +35,7 @@ contract DEX is Ownable, UseConfig, EIP712MetaTransaction {
       m().setClaimed(_pair, ITopic(_pair).totalInterests() - (mintable - v().claimable(_pair)));
       c().setClaimable(_pair, 0);
     }
-    e().convert(_pair, _amount, msgSender(), mintable);
+    e().convert(_pair, _amount, msgSender(), mintable, _ref);
   }
   
 }

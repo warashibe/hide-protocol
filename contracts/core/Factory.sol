@@ -21,20 +21,21 @@ contract Factory is Ownable, UseConfig, EIP712MetaTransaction {
     return _issue(_name, _sym, _addr);
   }
 
-  function createFreeTopic (string memory _name, string memory _id) public onlyOwner{
-    uint _topic = _createTopic(_name, _id);
+  function createFreeTopic (string memory _name, string memory _id, string memory _ref) public onlyOwner{
+    uint _topic = _createTopic(_name, _id, _ref);
     c().setFreeTopic(_topic);
   }
   
-  function createTopic (string memory _name, string memory _id) public returns (uint _index) {
+  function createTopic (string memory _name, string memory _id, string memory _ref) public returns (uint _index) {
     ICollector(a().collector()).collect(msgSender());
-    _index = _createTopic(_name, _id);
+    _index = _createTopic(_name, _id, _ref);
   }
   
-  function _createTopic (string memory _name, string memory _id) internal returns (uint _index) {
+  function _createTopic (string memory _name, string memory _id, string memory _ref) internal returns (uint _index) {
     require(v().topic_indexes(_name) == 0, "topic name is taken");
     _index = INFT(a().topics()).mint(msgSender(), _id);
     c().setTopicNames(_index, _name);
     c().setTopicIndexes(_name, _index);
+    e().createTopic(msgSender(), _name, _id, _ref);
   }
 }

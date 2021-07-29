@@ -16,35 +16,38 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
     nft = _nft;
   }
   
-  function updateItem (address _nft, uint _id, uint[] memory _topics) public {
+  function updateItem (address _nft, uint _id, uint[] memory _topics, string memory _ref) public {
     require(msgSender() == IERC721(_nft).ownerOf(_id), "item must be registered by owner");
     require(v().items(_nft, _id) == true, "item not registered");
     ICollector(a().collector()).collect(msgSender());
     m().setItemTopics(_nft, _id, _topics);
+    e().updateItem(msgSender(), _nft, _id, _topics, _ref);
   }
   
-  function addItem (address _nft, uint _id, uint[] memory _topics) public {
+  function addItem (address _nft, uint _id, uint[] memory _topics, string memory _ref) public {
     require(msgSender() == IERC721(_nft).ownerOf(_id), "item must be registered by owner");
     require(v().items(_nft, _id) == false, "item already registered");
     m().setItemTopics(_nft, _id, _topics);
     m().setItems(_nft, _id, true);
+    e().addItem(msgSender(), _nft, _id, _topics, _ref);
   }
   
-  function removeItem (address _nft, uint _id) public {
+  function removeItem (address _nft, uint _id, string memory _ref) public {
     require(msgSender() == IERC721(_nft).ownerOf(_id), "item must be registered by owner");
     require(v().items(_nft, _id) == true, "item not registered");
     ICollector(a().collector()).collect(msgSender());
     m().setItems(_nft, _id, false);
     m().deleteItemTopics(_nft, _id);
+    e().removeItem(msgSender(), _nft, _id, _ref);
   }
   
-  function createItem (string memory _str, uint[] memory _topics) public {
+  function createItem (string memory _str, uint[] memory _topics, string memory _ref) public {
     (, uint _id) = v().item_indexes(_str);
     require(_id == 0, "item already registered");
     ICollector(a().collector()).collect(msgSender());
     uint id = NFT(nft).mint(msgSender(), _str);
     m().setItemIndexes(_str, nft, id);
-    addItem(nft, id, _topics);
+    addItem(nft, id, _topics, _ref);
   }
   function _isBurnable(address _nft, uint _id, address _pair, uint _amount) internal view {
     require(v().items(_nft, _id), "item not registered");

@@ -72,7 +72,7 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
     c().setPollsPhase(_poll, 2);
   }
   
-  function _claim (uint _poll, uint _topic, uint _converted_amount, uint mintable, uint _amount) internal {
+  function _claim (uint _poll, uint _topic, uint _converted_amount, uint mintable, uint _amount, string memory _ref) internal {
     Poll memory _Poll = v().polls(_poll);
     c().setVotes(_poll, msgSender(), v().getVote(_poll, msgSender()) + _amount);
     c().setTopicVotes(_poll, msgSender(), _topic, v().getVote(_poll, msgSender()) + _amount);
@@ -83,7 +83,7 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
     c().setClaimable(_pair, v().claimable(_pair) + (_converted_amount - mintable));
     c().pushUserPairs(msgSender(), _pair);
     c().pushTopicPairs(_topic, _pair);
-    e().vote(_poll, _topic, _amount, msgSender(), _pair, mintable, _converted_amount - mintable);
+    e().vote(_poll, _topic, _amount, msgSender(), _pair, mintable, _converted_amount - mintable, _ref);
   }
   
   function _setPair (address _token, uint _topic) internal {
@@ -95,7 +95,7 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
     }
   }
   
-  function vote (uint _poll, uint _amount, uint _topic) public {
+  function vote (uint _poll, uint _amount, uint _topic, string memory _ref) public {
     mod().existsPoll(_poll);
     mod().existsTopic(_topic);
     Poll memory p = v().polls(_poll);
@@ -109,7 +109,7 @@ contract Governance is Ownable, UseConfig, EIP712MetaTransaction {
     c().setPollTopicVotes(_poll, _topic, v().poll_topic_votes(_poll, _topic) + _amount);
     c().pushPollTopics(_poll, _topic);
     c().setPollsMinted(_poll, p.minted + converted);
-    _claim(_poll, _topic, converted, mintable, _amount);
+    _claim(_poll, _topic, converted, mintable, _amount, _ref);
   }
   
 }
