@@ -100,6 +100,7 @@ contract Market is Ownable, UseConfig, EIP712MetaTransaction {
     m().setShareSqrt(_pair, _holder, v().shareOf(_pair, _holder) + share); 
     m().setLastBlocks(_pair, _holder, block.number);
     m().setLastBlock(_pair, block.number);
+    m().setKudos(_pair, _holder, v().kudos(_pair, _holder) + _amount);
   }
 
 }
