@@ -264,7 +264,7 @@ describe("Integration", () => {
     await events.addEmitter(a(dex))
 
     // VP
-    vp = await deploy("DOGVP", a(wpvp), a(addr))
+    vp = await deploy("JPYCVP", a(wpvp), a(addr))
     await wpvp.bulkRecordWP(
       [a(p1), a(p2), a(p3)],
       [a(p1), a(p2), a(p3)],
