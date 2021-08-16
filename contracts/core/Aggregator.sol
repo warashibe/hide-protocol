@@ -37,7 +37,7 @@ contract Aggregator is UseConfig {
     balances[1] = balances[0] + mintable;
   }
   
-  function infoUser(address _user) public view returns(uint[] memory balances, address[] memory pairs, address[] memory tokens, uint[] memory shares, uint[] memory kudos, uint[] memory topics){
+  function infoUser(address _user, address[] memory _tokens) public view returns(uint[] memory balances, address[] memory pairs, address[] memory tokens, uint[] memory shares, uint[] memory kudos, uint[] memory topics){
     pairs = v().user_pairs(_user);
     tokens = new address[](pairs.length);
     topics = new uint[](pairs.length);
@@ -53,58 +53,59 @@ contract Aggregator is UseConfig {
       kudos[i] = v().kudos(pairs[i], _user);
     }
   }
-  function getTopicLength(address _nft, uint _id, address _voter, uint[] memory topics) internal view returns(uint len){
-    address[] memory user_pairs = v().user_pairs(_voter);
-    for(uint i = 0; i < user_pairs.length; i++){
-      for(uint i2 = 0; i2 < topics.length; i2++){
-	if(v().pair_topics(user_pairs[i]) == topics[i2]){
-	  uint balance = IERC20(user_pairs[i]).balanceOf(_voter);
-	  if(balance > 0 && v().burn_limits(v().pair_tokens(user_pairs[i])) - v().user_item_burn(msg.sender, _nft, _id, user_pairs[i]) > 0 && IERC721(_nft).ownerOf(_id) != msg.sender){
-	    len += 1;
-	  }
+  function getExistPairs(uint[] memory topics, address[] memory _tokens) internal view returns(address[] memory _pairs, uint[] memory _topics, address[] memory tar_tokens){
+    uint index = 0;
+    _pairs = new address[](topics.length * _tokens.length);
+    _topics = new uint[](topics.length * _tokens.length);
+    tar_tokens = new address[](topics.length * _tokens.length);
+    for(uint i2 = 0; i2 < topics.length; i2++){
+      for(uint i4 = 0; i4 < _tokens.length; i4++){
+	address pair = v().pairs(_tokens[i4], topics[i2]);
+	if(pair != address(0)){
+	  _pairs[index] = pair;
+	  _topics[index] = topics[i2];
+	  tar_tokens[index] = _tokens[i4];
+	  index++;
 	}
       }
     }
-
   }
   
-  function getVotableTopics(address _nft, uint _id, address _voter, uint[] memory topics, uint len) internal view returns(uint[] memory votableTopics, uint[] memory max_amounts){
-    address[] memory user_pairs = v().user_pairs(_voter);
-    votableTopics = new uint[](len);
-    max_amounts = new uint[](len);
+  function getVotableTopics(address _nft, uint _id, address _voter, uint[] memory topics, address[] memory _tokens) internal view returns(uint[] memory votableTopics, uint[] memory max_amounts){
     uint i3 = 0;
-    for(uint i = 0; i < user_pairs.length; i++){
-      for(uint i2 = 0; i2 < topics.length; i2++){
-	if(v().pair_topics(user_pairs[i]) == topics[i2]){
-	  uint balance = IERC20(user_pairs[i]).balanceOf(_voter);
-	  if(balance > 0 && v().burn_limits(v().pair_tokens(user_pairs[i])) - v().user_item_burn(msg.sender, _nft, _id, user_pairs[i]) > 0){
-	    votableTopics[i3] = topics[i2];
-	    max_amounts[i3] = v().burn_limits(v().pair_tokens(user_pairs[i])) - v().user_item_burn(msg.sender, _nft, _id, user_pairs[i]);
-	    i3 += 1;
-	  }
+    (address[] memory _pairs, uint[] memory _topics, ) = getExistPairs(topics, _tokens);
+    votableTopics = new uint[](_pairs.length);
+    max_amounts = new uint[](_pairs.length);
+    for(uint i = 0; i < _pairs.length; i++){
+      if(_pairs[i] != address(0)){
+	uint balance = IERC20(_pairs[i]).balanceOf(_voter);
+	if(balance > 0 && v().burn_limits(v().pair_tokens(_pairs[i])) - v().user_item_burn(msg.sender, _nft, _id, _pairs[i]) > 0 && IERC721(_nft).ownerOf(_id) != msg.sender){
+	  votableTopics[i3] = _topics[i];
+	  max_amounts[i3] = v().burn_limits(v().pair_tokens(_pairs[i])) - v().user_item_burn(msg.sender, _nft, _id, _pairs[i]);
+	  i3 += 1;
 	}
       }
     }
   }
 
-  function getVotablePairs(address _nft, uint _id, address _voter, uint[] memory topics, uint len) internal view returns(address[] memory votable_pairs){
-    address[] memory user_pairs = v().user_pairs(_voter);
-    votable_pairs = new address[](len);
+  function getVotablePairs(address _nft, uint _id, address _voter, uint[] memory topics, address[] memory _tokens) internal view returns(address[] memory tokens, address[] memory votable_pairs){
     uint i3 = 0;
-    for(uint i = 0; i < user_pairs.length; i++){
-      for(uint i2 = 0; i2 < topics.length; i2++){
-	if(v().pair_topics(user_pairs[i]) == topics[i2]){
-	  uint balance = IERC20(user_pairs[i]).balanceOf(_voter);
-	  if(balance > 0 && v().burn_limits(v().pair_tokens(user_pairs[i])) - v().user_item_burn(msg.sender, _nft, _id, user_pairs[i]) > 0){
-	    votable_pairs[i3] = user_pairs[i];
-	    i3 += 1;
-	  }
+    (address[] memory _pairs, , address[] memory vtokens) = getExistPairs(topics, _tokens);
+    tokens = new address[](_pairs.length);
+    votable_pairs = new address[](_pairs.length);
+    for(uint i = 0; i < _pairs.length; i++){
+      if(_pairs[i] != address(0)){
+	uint balance = IERC20(_pairs[i]).balanceOf(_voter);
+	if(balance > 0 && v().burn_limits(v().pair_tokens(_pairs[i])) - v().user_item_burn(msg.sender, _nft, _id, _pairs[i]) > 0 && IERC721(_nft).ownerOf(_id) != msg.sender){
+	  votable_pairs[i3] = _pairs[i];
+	  tokens[i3] = vtokens[i];
+	  i3 += 1;
 	}
       }
     }
   }
 
-  function infoItem(address _nft, uint _id, address _voter) public view returns(uint[] memory topics, uint[] memory votableTopics, uint[] memory max_amounts, address[] memory votable_pairs){
+  function infoItem(address _nft, uint _id, address _voter, address[] memory _tokens) public view returns(uint[] memory topics, uint[] memory votableTopics, uint[] memory max_amounts, address[] memory votable_pairs, address[] memory tokens){
     uint[] memory _topics = v().item_topics(_nft, _id);
     bool existsFree = false;
     for(uint i = 0; i < _topics.length; i++){
@@ -120,9 +121,8 @@ contract Aggregator is UseConfig {
     if(!existsFree){
       topics[topics.length - 1] = v().free_topic();
     }
-    uint len = getTopicLength(_nft, _id, _voter, topics);
-    (votableTopics, max_amounts) = getVotableTopics(_nft, _id, _voter, topics, len);
-    votable_pairs = getVotablePairs(_nft, _id, _voter, topics, len);
+    (votableTopics, max_amounts) = getVotableTopics(_nft, _id, _voter, topics, _tokens);
+    (tokens, votable_pairs) = getVotablePairs(_nft, _id, _voter, topics, _tokens);
   }
   
   function infoDEX(address[] memory pairs, address _holder) public view returns(uint[] memory pools, uint[] memory shares, uint[] memory total_shares, uint[] memory max_mintable, uint[] memory per){
