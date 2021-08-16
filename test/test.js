@@ -100,6 +100,7 @@ describe("Integration", () => {
     withdraw,
     vp,
     jpyc,
+    doggod,
     market,
     events,
     nft,
@@ -140,6 +141,9 @@ describe("Integration", () => {
 
     // JPYC
     jpyc = await deploy("Token", "JPYC", "JPYC", to18(100000000))
+
+    // DOGGOD
+    doggod = await deploy("Token", "DOGGOD", "DOGGOD", to18(100000000))
 
     // WPVP
     wpvp = await deploy("WPVP")
@@ -547,7 +551,7 @@ describe("Integration", () => {
     expect(await viewer.item_pairs(a(nft), 2)).to.eql([pair2, pair3])
   })
 
-  it("should aggregate", async () => {
+  it.only("should aggregate", async () => {
     // set poll
     await jpyc.approve(a(gov), UINT_MAX)
     await gov.setPoll(p, a(jpyc), to18(1000), 30, [])
@@ -576,17 +580,20 @@ describe("Integration", () => {
     expect(from18((await aggr.infoVote(0, to18(5), 2, a(p1))).balances[1]) * 1)
       .to.be.gt(7)
       .lt(8)
-    expect((await aggr.infoUser(a(p1))).topics[0].toString() * 1).to.equal(2)
-
     expect(
-      (await aggr.infoItem(a(nft), 2, a(p1))).votable_pairs.length
-    ).to.equal(3)
-    const tokens = (await aggr.infoUser(a(p1))).pairs
+      (await aggr.infoUser(a(p1), [a(jpyc)])).topics[0].toString() * 1
+    ).to.equal(2)
+    console.log(await aggr.infoItem(a(nft), 2, a(p1), [a(jpyc), a(doggod)]))
+    expect(
+      (await aggr.infoItem(a(nft), 2, a(p1), [a(jpyc), a(doggod)]))
+        .votable_pairs.length
+    ).to.equal(6)
+    const tokens = (await aggr.infoUser(a(p1), [a(jpyc), a(doggod)])).pairs
     expect((await aggr.infoDEX(tokens, a(p1))).per[1].toString() * 1).to.equal(
       0
     )
     expect(
       (await aggr.infoBudgets([pair1, pair2, pair3])).tokens.length
-    ).to.equal(3)
+    ).to.equal(6)
   })
 })
